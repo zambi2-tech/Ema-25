@@ -13,47 +13,88 @@
 :root{
   --ink:#131A2B; --panel:#1B2440; --line:#2A3558; --text:#E8EBF4; --muted:#8C96B3;
   --up:#34D1A6; --down:#FF6E7A; --gold:#F0B90B;
-  --cols:minmax(0,1.45fr) repeat(4,minmax(0,1fr));
+  --n:6; --tok:1.1fr; --fs:11.5px; --tfs:14px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--ink);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
   -webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
 body{padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+body.lock{overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+
 header{position:sticky;top:0;z-index:5;background:var(--ink);
   padding:calc(env(safe-area-inset-top) + 12px) 12px 0;border-bottom:1px solid var(--line)}
 .top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 h1{font-size:21px;margin:0;font-weight:700;letter-spacing:-.015em}
 h1 small{font-size:13px;font-weight:500;color:var(--gold);margin-left:4px}
-.count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .status{font-size:12px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums;min-height:15px}
 .status.err{color:var(--down)}
 .controls{display:flex;gap:6px;margin-top:10px}
-input[type=search],select,.chip{background:var(--panel);border:1px solid var(--line);color:var(--text);
-  border-radius:10px;font-size:16px;font-family:inherit}
-input[type=search]{flex:1;min-width:0;padding:8px 10px}
-select{padding:8px 6px;-webkit-appearance:none;appearance:none;text-align:center}
-.chip{padding:8px 10px;font-size:14px;white-space:nowrap}
-.chip[aria-pressed=true]{border-color:var(--gold);color:var(--gold)}
-.bar{height:2px;margin:10px -12px 0;background:transparent;overflow:hidden}
+input[type=search]{flex:1;min-width:0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);
+  color:var(--text);border-radius:10px;font-size:16px;font-family:inherit}
+.btn{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:10px;
+  padding:8px 12px;font-size:14px;white-space:nowrap}
+
+.seg{display:flex;gap:4px;margin-top:8px}
+.seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;
+  background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:9px;
+  padding:7px 2px;font-size:13px;font-weight:500}
+.seg button[aria-pressed=true]{background:var(--panel);color:var(--text);border-color:var(--muted)}
+.sw{width:13px;height:10px;border-radius:2px;flex:none;background:rgba(52,209,166,.3)}
+.sw.hold{box-shadow:inset 0 -3px 0 var(--gold)}
+.sw.test{box-shadow:inset 0 0 0 1.5px var(--gold),inset 0 -3px 0 var(--gold)}
+.sw.brk{background:rgba(255,110,122,.3);border-bottom:2px dashed var(--down)}
+
+.bar{height:2px;margin:10px -12px 0;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .3s}
-.cols{display:grid;grid-template-columns:var(--cols);gap:3px;margin:6px 0 0;padding-bottom:6px}
-.cols button{background:none;border:0;color:var(--muted);font:600 12px/1.2 inherit;font-family:inherit;
-  padding:4px 0;text-align:center;border-radius:6px}
+.cols,a.row{display:grid;grid-template-columns:minmax(0,var(--tok)) repeat(var(--n),minmax(0,1fr));gap:3px}
+.cols{padding:6px 0}
+.cols button{background:none;border:0;color:var(--muted);font-size:12px;font-weight:600;padding:4px 0;
+  border-radius:6px;text-align:center;white-space:nowrap}
 .cols button:first-child{text-align:left}
 .cols button.on{color:var(--text)}
-.cols button:focus-visible,a.row:focus-visible,input:focus-visible,select:focus-visible,.chip:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+
 main{padding:4px 12px 16px}
-a.row{display:grid;grid-template-columns:var(--cols);gap:3px;align-items:stretch;
-  text-decoration:none;color:inherit;padding:3px 0;border-bottom:1px solid rgba(42,53,88,.55)}
-.tok{display:flex;flex-direction:column;justify-content:center;min-width:0;padding-right:4px}
-.tok b{font-size:15px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tok span{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.c{display:flex;align-items:center;justify-content:center;border-radius:7px;min-height:42px;
-  font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+a.row{text-decoration:none;color:inherit;padding:3px 0;border-bottom:1px solid rgba(42,53,88,.55)}
+.tok{display:flex;flex-direction:column;justify-content:center;min-width:0;padding-right:2px}
+.tok b{font-size:var(--tfs);font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tok span{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.c{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border-radius:7px;min-height:44px;font-size:var(--fs);font-weight:600;font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em;line-height:1.15;white-space:nowrap}
+.c small{font-size:9.5px;font-weight:600;opacity:.85;letter-spacing:0}
 .c.na{color:var(--line)}
+.c.hold::after,.c.test::after{content:"";position:absolute;left:3px;right:3px;bottom:2px;height:3px;
+  border-radius:2px;background:var(--gold)}
+.c.test{box-shadow:inset 0 0 0 1.5px var(--gold)}
+.c.brk::after{content:"";position:absolute;left:3px;right:3px;bottom:2px;border-bottom:2px dashed var(--down)}
 .empty{color:var(--muted);text-align:center;padding:40px 12px;font-size:14px;line-height:1.5}
-footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px}
+footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;max-width:70ch}
+
+.scrim{position:fixed;inset:0;background:rgba(5,8,16,.6);z-index:10;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;max-height:88vh;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  background:var(--panel);border-radius:16px 16px 0 0;border-top:1px solid var(--line);
+  padding:20px 16px calc(env(safe-area-inset-bottom) + 16px);
+  transform:translateY(105%);visibility:hidden;transition:transform .25s ease,visibility 0s linear .25s}
+.sheet.open{transform:none;visibility:visible;transition:transform .25s ease,visibility 0s}
+.sheet h2{font-size:15px;font-weight:650;margin:20px 0 4px}
+.sheet h2:first-child{margin-top:0}
+.sheet p,.sheet li{font-size:13px;color:var(--muted);line-height:1.5}
+.sheet p{margin:0 0 10px;max-width:62ch}
+.sheet ul{margin:0 0 10px;padding-left:18px;max-width:62ch}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{background:var(--ink);border:1px solid var(--line);color:var(--muted);border-radius:9px;
+  padding:8px 13px;font-size:14px;font-weight:600;min-width:52px}
+.chips button[aria-pressed=true]{border-color:var(--gold);color:var(--gold)}
+.done{display:block;width:100%;margin-top:20px;background:var(--gold);color:#1A1400;border:0;
+  border-radius:12px;padding:13px;font-size:16px;font-weight:650}
+@media (prefers-reduced-motion:reduce){.sheet,.sheet.open,.scrim,.bar i{transition:none}}
 </style>
 </head>
 <body>
@@ -64,84 +105,149 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px}
   </div>
   <div class="status" id="status">Connecting to Binance…</div>
   <div class="controls">
-    <input type="search" id="q" placeholder="Search token" autocomplete="off" autocapitalize="characters" spellcheck="false">
-    <select id="top" aria-label="How many tokens to show">
-      <option value="0">All</option><option value="50">Top 50</option>
-      <option value="100">Top 100</option><option value="200">Top 200</option>
-    </select>
-    <button class="chip" id="stable" aria-pressed="true">No stables</button>
+    <input type="search" id="q" placeholder="Search token" aria-label="Search token"
+      autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <button class="btn" id="openSettings" aria-haspopup="dialog">Settings</button>
+  </div>
+  <div class="seg" id="filter" role="group" aria-label="Filter by EMA 25 support">
+    <button data-f="all">All</button>
+    <button data-f="sup"><i class="sw hold"></i>Support</button>
+    <button data-f="test"><i class="sw test"></i>Testing</button>
+    <button data-f="brk"><i class="sw brk"></i>Breaking</button>
   </div>
   <div class="bar"><i id="bar"></i></div>
-  <div class="cols" id="cols">
-    <button data-k="vol">Token</button>
-    <button data-k="4h">4h</button>
-    <button data-k="1h">1h</button>
-    <button data-k="15m">15m</button>
-    <button data-k="1m">1m</button>
-  </div>
+  <div class="cols" id="cols"></div>
 </header>
 <main id="list"><div class="empty">Loading pairs…</div></main>
 <footer>
-  Each cell is how far the live price sits from the 25-period EMA on that timeframe.
-  Green is above, red is below; stronger color means further away.
-  Tap a column to sort by it, tap again to flip. Tap a token to open it on Binance.
-  Prices refresh every 30 seconds. Not financial advice.
+  Each cell shows how far the live price is from the EMA 25 on that timeframe. Green is above, red is below,
+  and stronger color means further away. Tap a column to sort by it, and tap again to flip. Tap a token to
+  open it on Binance. Open Settings to pick timeframes and see how support is detected. Not financial advice.
 </footer>
+
+<div class="scrim" id="scrim"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Settings">
+  <h2>Timeframes</h2>
+  <p>Only the timeframes you pick are calculated and shown. Fewer timeframes load faster and use less data.</p>
+  <div class="chips" id="ivChips"></div>
+  <h2>Tokens</h2>
+  <p>Ranked by 24h volume. Top 100 loads much faster than All.</p>
+  <div class="chips" id="topChips"></div>
+  <h2>Stablecoins</h2>
+  <div class="chips" id="stableChips"></div>
+  <h2>How support is detected</h2>
+  <p>On each timeframe, the app looks at the last 40 closed candles. The EMA 25 counts as support when all of these are true:</p>
+  <ul>
+    <li>The EMA 25 is sloping up.</li>
+    <li>Since price last closed below the EMA, it has dipped to it and closed back above it at least twice.
+      A dip counts when a candle's low comes within about a quarter of a normal candle's range of the EMA.</li>
+    <li>No candle has closed below the EMA since then.</li>
+  </ul>
+  <p>A gold line under a cell means support is holding, and the number shows how many bounces it has had.
+    A gold box means price is sitting on that support right now. A red dashed line means price has dropped
+    below a support that was holding; the break is confirmed if the candle closes there.</p>
+  <p>These are rule-based signals from past candles, not predictions.</p>
+  <button class="done" id="done">Done</button>
+</section>
 
 <script>
 (() => {
+'use strict';
+
+// ---------- Settings you can change ----------
 const QUOTE = 'USDT';
-const PERIOD = 25, K = 2 / (PERIOD + 1);
-const LIMIT = 99;            // <100 candles keeps each request at weight 1
-const REFRESH = 30000;       // 30 s
+const PERIOD = 25;            // EMA length
+const REFRESH = 30000;        // price refresh in ms (30 s)
+const LIMIT = 99;             // candles downloaded the first time for each chart
+const KEEP = 100;             // closed candles kept per chart
 const CONCURRENCY = 8;
-const IVS = ['4h', '1h', '15m', '1m'];
-const IV_MS = { '4h': 144e5, '1h': 36e5, '15m': 9e5, '1m': 6e4 };
-const SCALE = { '4h': 8, '1h': 4, '15m': 2, '1m': 0.8 }; // % at which color is fully saturated
-const STABLES = new Set(['USDC','FDUSD','TUSD','USDP','DAI','BUSD','USD1','EUR','AEUR','EURI','XUSD',
-  'BFUSD','USDE','PYUSD','RLUSD','USDS','UST','USTC','GBP','TRY','BRL','EURC']);
-// data-api.binance.vision is Binance's public market-data mirror and works in regions where api.binance.com is blocked
-const HOSTS = ['https://data-api.binance.vision','https://api.binance.com','https://api-gcp.binance.com','https://api1.binance.com'];
+const WEIGHT_CAP = 4800;      // Binance allows 6000 request weight per minute per IP; stay under it
+// Support rules. Distances are measured in ATR (average range of the last 14 candles),
+// so the same rules work on every timeframe and every coin's volatility.
+const SUP = {
+  lookback: 40,    // closed candles examined
+  minBounces: 2,   // separate dips to the EMA that closed back above it
+  touch: 0.25,     // a low within 0.25 ATR of the EMA (or below it) counts as a dip
+  breakTol: 0.1,   // a close more than 0.1 ATR below the EMA breaks support
+  slope: 5,        // EMA must be higher than it was this many candles ago
+  testZone: 0.3    // live price within 0.3 ATR above the EMA counts as testing it now
+};
+// ----------------------------------------------
+
+const K = 2 / (PERIOD + 1);
+const ALL_IVS = ['1d', '4h', '1h', '15m', '3m', '1m'];
+const LABEL = { '1d': '1D', '4h': '4H', '1h': '1H', '15m': '15m', '3m': '3m', '1m': '1m' };
+const IV_MS = { '1d': 864e5, '4h': 144e5, '1h': 36e5, '15m': 9e5, '3m': 18e4, '1m': 6e4 };
+const SCALE = { '1d': 15, '4h': 8, '1h': 4, '15m': 2, '3m': 1.2, '1m': 0.8 }; // % where color is fully saturated
+const STABLES = new Set(['USDC','FDUSD','TUSD','USDP','DAI','BUSD','USD1','EUR','AEUR','EURI','EURC','XUSD',
+  'BFUSD','USDE','PYUSD','RLUSD','USDS','UST','USTC','GBP','TRY','BRL']);
+// data-api.binance.vision is Binance's public market-data mirror; it works where api.binance.com is blocked
+const HOSTS = ['https://data-api.binance.vision', 'https://api.binance.com', 'https://api-gcp.binance.com', 'https://api1.binance.com'];
 
 const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
 const S = {
-  pairs: new Map(), tick: new Map(), ema: new Map(),
-  pending: new Set(), queue: [], active: 0, totalJobs: 0,
-  sortKey: 'vol', sortDir: -1, q: '', top: 0, hideStable: true,
-  lastUpdate: 0, nextAt: 0, err: ''
+  pairs: new Map(), tick: new Map(), charts: new Map(),
+  pending: new Set(), queue: [], active: 0,
+  ivs: ALL_IVS.slice(), top: 0, hideStable: true, filter: 'all',
+  sortKey: 'vol', sortDir: -1, q: '',
+  lastUpdate: 0, nextAt: 0, tickErr: ''
 };
 try {
-  const saved = JSON.parse(localStorage.getItem('ema25prefs') || '{}');
-  if (saved.top != null) S.top = saved.top;
-  if (saved.hideStable != null) S.hideStable = saved.hideStable;
+  const p = JSON.parse(localStorage.getItem('ema25prefs') || '{}');
+  if ([0, 50, 100, 200].includes(p.top)) S.top = p.top;
+  if (typeof p.hideStable === 'boolean') S.hideStable = p.hideStable;
+  if (Array.isArray(p.ivs)) { const v = ALL_IVS.filter(iv => p.ivs.includes(iv)); if (v.length) S.ivs = v; }
+  if (['all', 'sup', 'test', 'brk'].includes(p.filter)) S.filter = p.filter;
 } catch (_) {}
-const savePrefs = () => { try { localStorage.setItem('ema25prefs', JSON.stringify({ top: S.top, hideStable: S.hideStable })); } catch (_) {} };
+function savePrefs() {
+  try { localStorage.setItem('ema25prefs', JSON.stringify({ top: S.top, hideStable: S.hideStable, ivs: S.ivs, filter: S.filter })); } catch (_) {}
+}
 
-let hostIdx = 0, pauseUntil = 0;
-async function api(path) {
+// ---------- Binance API with rate-limit protection ----------
+let hostIdx = 0, pauseUntil = 0, spentSum = 0;
+const spent = [];
+function weightUsed() {
+  const cut = Date.now() - 60000;
+  while (spent.length && spent[0][0] < cut) spentSum -= spent.shift()[1];
+  return spentSum;
+}
+async function api(path, weight) {
   let lastErr;
   for (let i = 0; i < HOSTS.length; i++) {
     const idx = (hostIdx + i) % HOSTS.length;
+    spent.push([Date.now(), weight]); spentSum += weight;
     let r;
     try { r = await fetch(HOSTS[idx] + path, { cache: 'no-store' }); }
-    catch (e) { lastErr = e; continue; }                       // network / CORS: try next host
+    catch (_) { lastErr = new Error('No connection to Binance'); continue; }
     if (r.status === 429 || r.status === 418) {
-      const wait = (+r.headers.get('Retry-After') || 60);
+      const wait = +r.headers.get('Retry-After') || 60;
       pauseUntil = Date.now() + wait * 1000;
-      throw new Error(`Binance rate limit hit, pausing ${wait}s`);
+      throw new Error('Binance rate limit reached');
     }
-    if (r.status === 403 || r.status === 451) { lastErr = new Error('Blocked in this region'); continue; }
+    if (r.status === 403 || r.status === 451) { lastErr = new Error('Binance is blocked on this network'); continue; }
     if (!r.ok) throw new Error('Binance error ' + r.status);
     hostIdx = idx;
     return r.json();
   }
-  throw lastErr || new Error('Could not reach Binance');
+  throw lastErr || new Error('No connection to Binance');
+}
+
+let srvOffset = 0, lastSync = 0;
+const serverNow = () => Date.now() + srvOffset;
+async function syncTime() {
+  lastSync = Date.now();
+  try {
+    const t0 = Date.now(), r = await api('/api/v3/time', 1);
+    srvOffset = r.serverTime - (t0 + Date.now()) / 2;
+  } catch (_) {}
 }
 
 async function loadPairs() {
   let info;
-  try { info = await api('/api/v3/exchangeInfo?symbolStatus=TRADING'); }
-  catch (_) { info = await api('/api/v3/exchangeInfo'); }
+  try { info = await api('/api/v3/exchangeInfo?symbolStatus=TRADING', 20); }
+  catch (_) { info = await api('/api/v3/exchangeInfo', 20); }
   for (const s of info.symbols) {
     if (s.status === 'TRADING' && s.quoteAsset === QUOTE && s.isSpotTradingAllowed !== false)
       S.pairs.set(s.symbol, s.baseAsset);
@@ -149,145 +255,317 @@ async function loadPairs() {
 }
 
 async function refreshTickers() {
-  const t = await api('/api/v3/ticker/24hr?type=MINI');
-  for (const x of t) {
-    if (!S.pairs.has(x.symbol)) continue;
-    S.tick.set(x.symbol, { price: +x.lastPrice, vol: +x.quoteVolume });
-  }
+  const t = await api('/api/v3/ticker/24hr?type=MINI', 80);
+  for (const x of t) if (S.pairs.has(x.symbol)) S.tick.set(x.symbol, { price: +x.lastPrice, vol: +x.quoteVolume });
 }
 
-// Symbols in volume order, after the Top-N and stablecoin filters (search is applied only at render)
+// Tokens in volume order after the Top-N and stablecoin settings (search and filters apply at display time)
 function universe() {
   let list = [...S.pairs.keys()].filter(s => { const t = S.tick.get(s); return t && t.vol > 0 && t.price > 0; });
   if (S.hideStable) list = list.filter(s => !STABLES.has(S.pairs.get(s)));
   list.sort((a, b) => S.tick.get(b).vol - S.tick.get(a).vol);
-  if (S.top > 0) list = list.slice(0, S.top);
-  return list;
+  return S.top > 0 ? list.slice(0, S.top) : list;
 }
 
-// Candles only need re-downloading when a candle closes; between closes the live EMA is
-// derived from the closed-candle EMA plus the current price, which is exactly how charts compute it.
-function schedule() {
-  const now = Date.now(), list = universe(), rank = new Map(list.map((s, i) => [s, i]));
-  for (const sym of list) for (const iv of IVS) {
-    const key = sym + '|' + iv, e = S.ema.get(key);
-    if ((!e || now >= e.refetchAt) && !S.pending.has(key)) {
-      S.pending.add(key); S.queue.push([sym, iv]); S.totalJobs++;
+// ---------- Candles, EMA and support ----------
+// Each chart keeps its closed candles plus the EMA at every candle. After the first download,
+// only the newest few candles are fetched when a candle closes, which saves a lot of mobile data.
+function build(closed) {
+  const ch = { h: [], l: [], c: [], e: [], lastOpen: 0 };
+  let sum = 0;
+  closed.forEach((x, i) => {
+    const c = +x[4];
+    ch.h.push(+x[2]); ch.l.push(+x[3]); ch.c.push(c);
+    if (i < PERIOD - 1) { sum += c; ch.e.push(null); }
+    else if (i === PERIOD - 1) { sum += c; ch.e.push(sum / PERIOD); }
+    else ch.e.push(c * K + ch.e[i - 1] * (1 - K));
+    ch.lastOpen = +x[0];
+  });
+  return ch;
+}
+
+function append(ch, x) {
+  const c = +x[4], prev = ch.e[ch.e.length - 1];
+  ch.h.push(+x[2]); ch.l.push(+x[3]); ch.c.push(c);
+  ch.e.push(c * K + prev * (1 - K));
+  ch.lastOpen = +x[0];
+  const extra = ch.c.length - KEEP;
+  if (extra > 0) for (const a of [ch.h, ch.l, ch.c, ch.e]) a.splice(0, extra);
+}
+
+function derive(ch) {
+  const n = ch.c.length, e = ch.e;
+  ch.ema = n ? e[n - 1] : null; ch.atr = 0; ch.bounces = 0; ch.support = false;
+  if (ch.ema == null) return;
+  let tr = 0, m = 0;
+  for (let i = Math.max(1, n - 14); i < n; i++) {
+    tr += Math.max(ch.h[i] - ch.l[i], Math.abs(ch.h[i] - ch.c[i - 1]), Math.abs(ch.l[i] - ch.c[i - 1]));
+    m++;
+  }
+  ch.atr = m ? tr / m : 0;
+  const firstE = e.findIndex(v => v != null);
+  const start = Math.max(firstE + 10, n - SUP.lookback);     // skip the EMA's warm-up candles
+  if (!(ch.atr > 0) || n - start < 10 || n - 1 - SUP.slope < firstE) return;
+  let lastBreak = -1;
+  for (let i = start; i < n; i++) if (ch.c[i] < e[i] - SUP.breakTol * ch.atr) lastBreak = i;
+  let bounces = 0, touching = false;
+  // count separate dips since the last close below the EMA (skipping the candle that reclaimed it)
+  for (let i = lastBreak >= 0 ? lastBreak + 2 : start; i < n; i++) {
+    const t = ch.l[i] <= e[i] + SUP.touch * ch.atr;
+    if (t && !touching) bounces++;
+    touching = t;
+  }
+  ch.bounces = bounces;
+  ch.support = bounces >= SUP.minBounces && e[n - 1] > e[n - 1 - SUP.slope];
+}
+
+async function loadChart(sym, iv) {
+  const key = sym + '|' + iv, old = S.charts.get(key);
+  const url = n => `/api/v3/klines?symbol=${sym}&interval=${iv}&limit=${n}`;
+  let ch = null, k;
+  if (old && old.c && old.e.length && old.e[old.e.length - 1] != null) {
+    k = await api(url(6), 2);
+    const now = serverNow();
+    const fresh = k.filter(x => +x[6] < now && +x[0] > old.lastOpen);
+    if (!fresh.length || +fresh[0][0] === old.lastOpen + IV_MS[iv]) {   // no gap: extend in place
+      for (const x of fresh) append(old, x);
+      ch = old;
     }
   }
-  // drop queued jobs for tokens no longer shown (e.g. after switching to Top 50)
+  if (!ch) {
+    k = await api(url(LIMIT), 2);
+    const now = serverNow();
+    ch = build(k.filter(x => +x[6] < now));        // closed candles only
+  }
+  derive(ch);
+  const now = serverNow(), forming = k.find(x => +x[6] >= now);
+  ch.refetchAt = (forming ? +forming[6] : ch.lastOpen + 2 * IV_MS[iv]) + 1500;
+  S.charts.set(key, ch);
+}
+
+// ---------- Download queue ----------
+function schedule() {
+  const now = serverNow(), list = universe(), rank = new Map(list.map((s, i) => [s, i]));
+  const ivs = new Set(S.ivs);
   S.queue = S.queue.filter(([s, iv]) => {
-    if (rank.has(s)) return true;
-    S.pending.delete(s + '|' + iv); S.totalJobs = Math.max(0, S.totalJobs - 1); return false;
+    if (rank.has(s) && ivs.has(iv)) return true;
+    S.pending.delete(s + '|' + iv);
+    return false;
   });
-  S.queue.sort((a, b) => rank.get(a[0]) - rank.get(b[0]) || IVS.indexOf(a[1]) - IVS.indexOf(b[1]));
+  for (const sym of list) for (const iv of S.ivs) {
+    const key = sym + '|' + iv, ch = S.charts.get(key);
+    if ((!ch || now >= ch.refetchAt) && !S.pending.has(key)) { S.pending.add(key); S.queue.push([sym, iv]); }
+  }
+  S.queue.sort((a, b) => rank.get(a[0]) - rank.get(b[0]) || ALL_IVS.indexOf(a[1]) - ALL_IVS.indexOf(b[1]));
   pump();
 }
 
 let pumpTimer = null;
 function pump() {
   while (S.active < CONCURRENCY && S.queue.length) {
-    const wait = pauseUntil - Date.now();
-    if (wait > 0) { if (!pumpTimer) pumpTimer = setTimeout(() => { pumpTimer = null; pump(); }, wait + 200); return; }
+    let wait = pauseUntil - Date.now();
+    if (weightUsed() + 2 > WEIGHT_CAP) wait = Math.max(wait, spent[0][0] + 60000 - Date.now());
+    if (wait > 0) {
+      if (!pumpTimer) pumpTimer = setTimeout(() => { pumpTimer = null; pump(); }, wait + 100);
+      return;
+    }
     const [sym, iv] = S.queue.shift(), key = sym + '|' + iv;
     S.active++;
-    fetchEma(sym, iv)
-      .catch(err => {
-        S.err = err.message;
-        const e = S.ema.get(key);
-        S.ema.set(key, { ema: e ? e.ema : null, refetchAt: Date.now() + 30000 });
+    loadChart(sym, iv)
+      .catch(() => {
+        const ch = S.charts.get(key);
+        if (ch) ch.refetchAt = serverNow() + 30000;
+        else S.charts.set(key, { ema: null, refetchAt: serverNow() + 30000 });
       })
       .finally(() => { S.active--; S.pending.delete(key); requestRender(); pump(); });
   }
 }
 
-async function fetchEma(sym, iv) {
-  const k = await api(`/api/v3/klines?symbol=${sym}&interval=${iv}&limit=${LIMIT}`);
-  const last = k[k.length - 1];
-  const closes = k.slice(0, -1).map(c => +c[4]);   // drop the candle still forming
-  let ema = null;
-  if (closes.length >= PERIOD) {
-    ema = closes.slice(0, PERIOD).reduce((a, b) => a + b, 0) / PERIOD;
-    for (let i = PERIOD; i < closes.length; i++) ema = closes[i] * K + ema * (1 - K);
+// ---------- Live values ----------
+function state(sym, iv) {
+  const ch = S.charts.get(sym + '|' + iv), t = S.tick.get(sym);
+  if (!ch || ch.ema == null || !t) return null;
+  const live = ch.ema + K * (t.price - ch.ema);          // EMA including the candle still forming
+  const s = { pct: (t.price - live) / live * 100, sup: '', b: ch.bounces };
+  if (ch.support) {
+    const d = (t.price - live) / ch.atr;
+    s.sup = d > SUP.testZone ? 'hold' : d >= -SUP.breakTol ? 'test' : 'brk';
   }
-  const closeAt = last ? +last[6] + 1 : Date.now() + IV_MS[iv];
-  S.ema.set(sym + '|' + iv, { ema, refetchAt: closeAt + 1500 });
+  return s;
 }
 
-function distance(sym, iv) {
-  const e = S.ema.get(sym + '|' + iv), t = S.tick.get(sym);
-  if (!e || e.ema == null || !t) return null;
-  const live = e.ema + K * (t.price - e.ema);
-  return (t.price - live) / live * 100;
+// ---------- Display ----------
+const SUBS = '₀₁₂₃₄₅₆₇₈₉';
+function fmtPrice(p) {
+  if (p >= 10000) return '$' + p.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  if (p >= 1000) return '$' + p.toLocaleString('en-US', { maximumFractionDigits: 1 });
+  if (p >= 0.0001) return '$' + p.toLocaleString('en-US', { maximumSignificantDigits: 4 });
+  // tiny prices in Binance style: 0.00001234 -> 0.0₄1234
+  let z = Math.ceil(-Math.log10(p) - 1e-9) - 1, d = Math.round(p * Math.pow(10, z + 4));
+  if (d >= 10000) { z -= 1; d = Math.round(d / 10); }
+  return '$0.0' + String(z).split('').map(x => SUBS[x]).join('') + d;
 }
+const fmtVol = v => v >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : v >= 1e6 ? (v / 1e6).toFixed(1) + 'M'
+  : v >= 1e3 ? (v / 1e3).toFixed(0) + 'K' : v.toFixed(0);
 
-const fmtPrice = p => p >= 1000 ? p.toLocaleString('en-US', { maximumFractionDigits: 2 })
-  : p.toLocaleString('en-US', { maximumSignificantDigits: 5 });
-const fmtVol = v => v >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'K' : v.toFixed(0);
-function cell(p, iv) {
-  if (p == null) return '<div class="c na">–</div>';
-  const a = Math.min(Math.abs(p) / SCALE[iv], 1);
+function cell(s, iv) {
+  if (!s) return '<div class="c na">–</div>';
+  const p = s.pct, abs = Math.abs(p), a = Math.min(abs / SCALE[iv], 1);
   const rgb = p >= 0 ? '52,209,166' : '255,110,122';
-  const color = a > 0.55 ? '#fff' : (p >= 0 ? 'var(--up)' : 'var(--down)');
-  const txt = (p >= 0 ? '+' : '') + (Math.abs(p) >= 10 ? p.toFixed(1) : p.toFixed(2)) + '%';
-  return `<div class="c" style="background:rgba(${rgb},${(0.07 + a * 0.55).toFixed(3)});color:${color}">${txt}</div>`;
+  const color = a > 0.55 ? '#fff' : p >= 0 ? 'var(--up)' : 'var(--down)';
+  const num = abs >= 100 ? abs.toFixed(0) : abs >= 10 ? abs.toFixed(1) : abs.toFixed(2);
+  const badge = s.sup ? `<small>×${s.b}</small>` : '';
+  return `<div class="c ${s.sup}" style="background:rgba(${rgb},${(0.07 + a * 0.55).toFixed(3)});color:${color}">`
+    + `${p >= 0 ? '+' : '−'}${num}%${badge}</div>`;
+}
+
+function layout() {
+  const n = S.ivs.length, r = document.documentElement.style;
+  r.setProperty('--n', n);
+  r.setProperty('--tok', n <= 3 ? '1.6fr' : n === 4 ? '1.45fr' : n === 5 ? '1.25fr' : '1.1fr');
+  r.setProperty('--fs', n <= 4 ? '13.5px' : n === 5 ? '12.5px' : '11.5px');
+  r.setProperty('--tfs', n <= 4 ? '15px' : '14px');
 }
 
 let renderTimer = null;
 function requestRender() { if (!renderTimer) renderTimer = setTimeout(() => { renderTimer = null; render(); }, 500); }
 
+const EMPTY = {
+  sup: 'No token has EMA 25 support on the selected timeframes right now.',
+  test: 'No token is sitting on EMA 25 support right now.',
+  brk: 'No EMA 25 support is breaking right now.'
+};
+
 function render() {
-  const list = universe();
+  const list = universe(), ivs = S.ivs;
   let rows = list.map(sym => {
-    const t = S.tick.get(sym), d = {};
-    for (const iv of IVS) d[iv] = distance(sym, iv);
-    return { sym, base: S.pairs.get(sym), price: t.price, vol: t.vol, d };
+    const t = S.tick.get(sym), st = {};
+    for (const iv of ivs) st[iv] = state(sym, iv);
+    return { base: S.pairs.get(sym), price: t.price, vol: t.vol, st };
   });
   const q = S.q.trim().toUpperCase();
   if (q) rows = rows.filter(r => r.base.includes(q));
+  if (S.filter !== 'all') rows = rows.filter(r => ivs.some(iv => {
+    const s = r.st[iv];
+    return s && (S.filter === 'sup' ? s.sup === 'hold' || s.sup === 'test' : s.sup === S.filter);
+  }));
   if (S.sortKey !== 'vol') {
     const k = S.sortKey, dir = S.sortDir;
-    rows.sort((a, b) => (a.d[k] == null) - (b.d[k] == null) || dir * ((a.d[k] ?? 0) - (b.d[k] ?? 0)));
+    rows.sort((a, b) => {
+      const x = a.st[k], y = b.st[k];
+      return (!x || !y) ? (!x) - (!y) : dir * (x.pct - y.pct);
+    });
   }
-  $('count').textContent = list.length ? `${list.length} pairs` : '';
+  $('count').textContent = !list.length ? '' : rows.length === list.length ? `${list.length} pairs` : `${rows.length} of ${list.length}`;
+  let empty = 'Waiting for data from Binance…';
+  if (q) empty = `No ${QUOTE} pair matches “${esc(S.q.trim())}”.`;
+  else if (list.length && S.filter !== 'all') empty = EMPTY[S.filter];
   $('list').innerHTML = rows.length
-    ? rows.map(r => `<a class="row" href="https://www.binance.com/en/trade/${r.base}_${QUOTE}?type=spot" target="_blank" rel="noopener">
-        <div class="tok"><b>${r.base}</b><span>$${fmtPrice(r.price)}</span><span>Vol $${fmtVol(r.vol)}</span></div>
-        ${IVS.map(iv => cell(r.d[iv], iv)).join('')}</a>`).join('')
-    : `<div class="empty">${q ? `No ${QUOTE} pair matches “${S.q}”.` : 'Waiting for data from Binance…'}</div>`;
+    ? rows.map(r => `<a class="row" href="https://www.binance.com/en/trade/${r.base}_${QUOTE}?type=spot" target="_blank" rel="noopener">`
+        + `<div class="tok"><b>${esc(r.base)}</b><span>${fmtPrice(r.price)}</span><span>Vol ${fmtVol(r.vol)}</span></div>`
+        + ivs.map(iv => cell(r.st[iv], iv)).join('') + '</a>').join('')
+    : `<div class="empty">${empty}</div>`;
   renderHeader(); renderStatus();
 }
 
+let headKey = '';
 function renderHeader() {
-  for (const b of $('cols').children) {
-    const k = b.dataset.k, on = k === S.sortKey;
-    b.classList.toggle('on', on);
-    const label = k === 'vol' ? 'Token' : k;
-    b.textContent = on ? `${label} ${S.sortDir < 0 ? '↓' : '↑'}` : label;
+  const key = S.ivs.join() + '|' + S.sortKey + '|' + S.sortDir;
+  if (key !== headKey) {
+    headKey = key;
+    const mark = k => S.sortKey === k ? (S.sortDir < 0 ? ' ↓' : ' ↑') : '';
+    $('cols').innerHTML = `<button data-k="vol" class="${S.sortKey === 'vol' ? 'on' : ''}">Token${mark('vol')}</button>`
+      + S.ivs.map(iv => `<button data-k="${iv}" class="${S.sortKey === iv ? 'on' : ''}">${LABEL[iv]}${mark(iv)}</button>`).join('');
   }
-  $('stable').setAttribute('aria-pressed', S.hideStable);
-  $('stable').textContent = S.hideStable ? 'No stables' : 'Stables on';
-  $('top').value = String(S.top);
+  for (const b of $('filter').children) b.setAttribute('aria-pressed', String(b.dataset.f === S.filter));
+}
+
+function coverage() {
+  const list = universe();
+  let have = 0;
+  for (const s of list) for (const iv of S.ivs) if (S.charts.has(s + '|' + iv)) have++;
+  return [have, list.length * S.ivs.length];
 }
 
 function renderStatus() {
-  const left = S.queue.length + S.active;
-  const done = Math.max(0, S.totalJobs - left);
-  $('bar').style.width = left ? (done / S.totalJobs * 100).toFixed(1) + '%' : '0';
-  if (!left) S.totalJobs = 0;
-  const el = $('status');
-  if (S.err && Date.now() < pauseUntil) { el.className = 'status err'; el.textContent = S.err; return; }
-  if (!S.lastUpdate) { el.className = S.err ? 'status err' : 'status'; el.textContent = S.err || 'Connecting to Binance…'; return; }
-  el.className = 'status';
-  const t = new Date(S.lastUpdate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const next = Math.max(0, Math.ceil((S.nextAt - Date.now()) / 1000));
-  el.textContent = `Updated ${t}, next in ${next}s` + (left ? `, loading candles (${left} left)` : '');
+  const [have, total] = coverage(), loading = total > 0 && have < total;
+  $('bar').style.width = loading ? (have / total * 100).toFixed(1) + '%' : '0';
+  const el = $('status'), now = Date.now(), next = Math.max(0, Math.ceil((S.nextAt - now) / 1000));
+  if (pauseUntil > now) {
+    el.className = 'status err';
+    el.textContent = `Binance rate limit reached, resuming in ${Math.ceil((pauseUntil - now) / 1000)}s`;
+  } else if (S.tickErr) {
+    el.className = 'status err';
+    el.textContent = `${S.tickErr}. Retrying in ${next}s`;
+  } else if (!S.lastUpdate) {
+    el.className = 'status';
+    el.textContent = 'Connecting to Binance…';
+  } else {
+    el.className = 'status';
+    const t = new Date(S.lastUpdate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    el.textContent = `Updated ${t}, next in ${next}s` + (loading ? `, charts ${have}/${total}` : '');
+  }
 }
 
+function renderSettings() {
+  $('ivChips').innerHTML = ALL_IVS.map(iv =>
+    `<button data-iv="${iv}" aria-pressed="${S.ivs.includes(iv)}">${LABEL[iv]}</button>`).join('');
+  $('topChips').innerHTML = [[0, 'All'], [50, 'Top 50'], [100, 'Top 100'], [200, 'Top 200']].map(([v, l]) =>
+    `<button data-top="${v}" aria-pressed="${S.top === v}">${l}</button>`).join('');
+  $('stableChips').innerHTML = `<button data-st="1" aria-pressed="${S.hideStable}">Hide</button>`
+    + `<button data-st="0" aria-pressed="${!S.hideStable}">Show</button>`;
+}
+
+// ---------- Events ----------
+function settingsChanged() { savePrefs(); layout(); renderSettings(); schedule(); render(); }
+
+$('ivChips').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const iv = b.dataset.iv, on = S.ivs.includes(iv);
+  if (on && S.ivs.length === 1) return;                   // keep at least one timeframe
+  S.ivs = ALL_IVS.filter(x => x === iv ? !on : S.ivs.includes(x));
+  if (S.sortKey !== 'vol' && !S.ivs.includes(S.sortKey)) { S.sortKey = 'vol'; S.sortDir = -1; }
+  settingsChanged();
+});
+$('topChips').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  S.top = +b.dataset.top; settingsChanged();
+});
+$('stableChips').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  S.hideStable = b.dataset.st === '1'; settingsChanged();
+});
+$('filter').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  S.filter = b.dataset.f; savePrefs(); render();
+});
+$('cols').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const k = b.dataset.k;
+  if (k === 'vol') { S.sortKey = 'vol'; S.sortDir = -1; }
+  else if (S.sortKey === k) S.sortDir *= -1;
+  else { S.sortKey = k; S.sortDir = -1; }
+  render(); window.scrollTo({ top: 0 });
+});
+$('q').addEventListener('input', e => { S.q = e.target.value; render(); });
+
+function openSheet(open) {
+  if (open) renderSettings();
+  $('sheet').classList.toggle('open', open);
+  $('scrim').classList.toggle('open', open);
+  document.body.classList.toggle('lock', open);
+}
+$('openSettings').addEventListener('click', () => openSheet(true));
+$('done').addEventListener('click', () => openSheet(false));
+$('scrim').addEventListener('click', () => openSheet(false));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') openSheet(false); });
+
+// ---------- Refresh loop ----------
 async function cycle() {
   if (document.hidden) return;
-  try { await refreshTickers(); S.lastUpdate = Date.now(); S.err = ''; }
-  catch (e) { S.err = e.message; }
+  if (Date.now() - lastSync > 30 * 60000) await syncTime();
+  try { await refreshTickers(); S.lastUpdate = Date.now(); S.tickErr = ''; }
+  catch (e) { S.tickErr = e.message; }
   schedule(); render();
 }
 let loopTimer = null;
@@ -298,29 +576,16 @@ async function loop() {
   S.nextAt = Date.now() + REFRESH;
   loopTimer = setTimeout(loop, REFRESH);
 }
-
-// UI events
-$('cols').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
-  const k = b.dataset.k;
-  if (k === 'vol') { S.sortKey = 'vol'; S.sortDir = -1; }
-  else if (S.sortKey === k) S.sortDir *= -1;
-  else { S.sortKey = k; S.sortDir = -1; }
-  render(); window.scrollTo({ top: 0 });
-});
-$('q').addEventListener('input', e => { S.q = e.target.value; render(); });
-$('top').addEventListener('change', e => { S.top = +e.target.value; savePrefs(); schedule(); render(); });
-$('stable').addEventListener('click', () => { S.hideStable = !S.hideStable; savePrefs(); schedule(); render(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - S.lastUpdate > 5000) loop(); });
 setInterval(renderStatus, 1000);
 
 (async () => {
-  renderHeader();
+  layout(); renderHeader();
   try { await loadPairs(); }
   catch (e) {
     $('status').className = 'status err';
-    $('status').textContent = e.message + '. Check your connection and reload.';
-    $('list').innerHTML = '<div class="empty">Could not load the Binance pair list. Pull down to reload.</div>';
+    $('status').textContent = `${e.message}. Check your connection and reopen the app.`;
+    $('list').innerHTML = '<div class="empty">Could not load the Binance pair list.</div>';
     return;
   }
   loop();
