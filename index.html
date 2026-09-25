@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EMA 25">
+<meta name="theme-color" content="#131A2B">
+<title>EMA 25 distance</title>
+<style>
+:root{
+  --ink:#131A2B; --panel:#1B2440; --line:#2A3558; --text:#E8EBF4; --muted:#8C96B3;
+  --up:#34D1A6; --down:#FF6E7A; --gold:#F0B90B;
+  --cols:minmax(0,1.45fr) repeat(4,minmax(0,1fr));
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ink);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  -webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+header{position:sticky;top:0;z-index:5;background:var(--ink);
+  padding:calc(env(safe-area-inset-top) + 12px) 12px 0;border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+h1{font-size:21px;margin:0;font-weight:700;letter-spacing:-.015em}
+h1 small{font-size:13px;font-weight:500;color:var(--gold);margin-left:4px}
+.count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.status{font-size:12px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums;min-height:15px}
+.status.err{color:var(--down)}
+.controls{display:flex;gap:6px;margin-top:10px}
+input[type=search],select,.chip{background:var(--panel);border:1px solid var(--line);color:var(--text);
+  border-radius:10px;font-size:16px;font-family:inherit}
+input[type=search]{flex:1;min-width:0;padding:8px 10px}
+select{padding:8px 6px;-webkit-appearance:none;appearance:none;text-align:center}
+.chip{padding:8px 10px;font-size:14px;white-space:nowrap}
+.chip[aria-pressed=true]{border-color:var(--gold);color:var(--gold)}
+.bar{height:2px;margin:10px -12px 0;background:transparent;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .3s}
+.cols{display:grid;grid-template-columns:var(--cols);gap:3px;margin:6px 0 0;padding-bottom:6px}
+.cols button{background:none;border:0;color:var(--muted);font:600 12px/1.2 inherit;font-family:inherit;
+  padding:4px 0;text-align:center;border-radius:6px}
+.cols button:first-child{text-align:left}
+.cols button.on{color:var(--text)}
+.cols button:focus-visible,a.row:focus-visible,input:focus-visible,select:focus-visible,.chip:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+main{padding:4px 12px 16px}
+a.row{display:grid;grid-template-columns:var(--cols);gap:3px;align-items:stretch;
+  text-decoration:none;color:inherit;padding:3px 0;border-bottom:1px solid rgba(42,53,88,.55)}
+.tok{display:flex;flex-direction:column;justify-content:center;min-width:0;padding-right:4px}
+.tok b{font-size:15px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tok span{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c{display:flex;align-items:center;justify-content:center;border-radius:7px;min-height:42px;
+  font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.c.na{color:var(--line)}
+.empty{color:var(--muted);text-align:center;padding:40px 12px;font-size:14px;line-height:1.5}
+footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>EMA 25 distance <small>Binance</small></h1>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="status" id="status">Connecting to Binance…</div>
+  <div class="controls">
+    <input type="search" id="q" placeholder="Search token" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <select id="top" aria-label="How many tokens to show">
+      <option value="0">All</option><option value="50">Top 50</option>
+      <option value="100">Top 100</option><option value="200">Top 200</option>
+    </select>
+    <button class="chip" id="stable" aria-pressed="true">No stables</button>
+  </div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="cols" id="cols">
+    <button data-k="vol">Token</button>
+    <button data-k="4h">4h</button>
+    <button data-k="1h">1h</button>
+    <button data-k="15m">15m</button>
+    <button data-k="1m">1m</button>
+  </div>
+</header>
+<main id="list"><div class="empty">Loading pairs…</div></main>
+<footer>
+  Each cell is how far the live price sits from the 25-period EMA on that timeframe.
+  Green is above, red is below; stronger color means further away.
+  Tap a column to sort by it, tap again to flip. Tap a token to open it on Binance.
+  Prices refresh every 30 seconds. Not financial advice.
+</footer>
+
+<script>
+(() => {
+const QUOTE = 'USDT';
+const PERIOD = 25, K = 2 / (PERIOD + 1);
+const LIMIT = 99;            // <100 candles keeps each request at weight 1
+const REFRESH = 30000;       // 30 s
+const CONCURRENCY = 8;
+const IVS = ['4h', '1h', '15m', '1m'];
+const IV_MS = { '4h': 144e5, '1h': 36e5, '15m': 9e5, '1m': 6e4 };
+const SCALE = { '4h': 8, '1h': 4, '15m': 2, '1m': 0.8 }; // % at which color is fully saturated
+const STABLES = new Set(['USDC','FDUSD','TUSD','USDP','DAI','BUSD','USD1','EUR','AEUR','EURI','XUSD',
+  'BFUSD','USDE','PYUSD','RLUSD','USDS','UST','USTC','GBP','TRY','BRL','EURC']);
+// data-api.binance.vision is Binance's public market-data mirror and works in regions where api.binance.com is blocked
+const HOSTS = ['https://data-api.binance.vision','https://api.binance.com','https://api-gcp.binance.com','https://api1.binance.com'];
+
+const $ = id => document.getElementById(id);
+const S = {
+  pairs: new Map(), tick: new Map(), ema: new Map(),
+  pending: new Set(), queue: [], active: 0, totalJobs: 0,
+  sortKey: 'vol', sortDir: -1, q: '', top: 0, hideStable: true,
+  lastUpdate: 0, nextAt: 0, err: ''
+};
+try {
+  const saved = JSON.parse(localStorage.getItem('ema25prefs') || '{}');
+  if (saved.top != null) S.top = saved.top;
+  if (saved.hideStable != null) S.hideStable = saved.hideStable;
+} catch (_) {}
+const savePrefs = () => { try { localStorage.setItem('ema25prefs', JSON.stringify({ top: S.top, hideStable: S.hideStable })); } catch (_) {} };
+
+let hostIdx = 0, pauseUntil = 0;
+async function api(path) {
+  let lastErr;
+  for (let i = 0; i < HOSTS.length; i++) {
+    const idx = (hostIdx + i) % HOSTS.length;
+    let r;
+    try { r = await fetch(HOSTS[idx] + path, { cache: 'no-store' }); }
+    catch (e) { lastErr = e; continue; }                       // network / CORS: try next host
+    if (r.status === 429 || r.status === 418) {
+      const wait = (+r.headers.get('Retry-After') || 60);
+      pauseUntil = Date.now() + wait * 1000;
+      throw new Error(`Binance rate limit hit, pausing ${wait}s`);
+    }
+    if (r.status === 403 || r.status === 451) { lastErr = new Error('Blocked in this region'); continue; }
+    if (!r.ok) throw new Error('Binance error ' + r.status);
+    hostIdx = idx;
+    return r.json();
+  }
+  throw lastErr || new Error('Could not reach Binance');
+}
+
+async function loadPairs() {
+  let info;
+  try { info = await api('/api/v3/exchangeInfo?symbolStatus=TRADING'); }
+  catch (_) { info = await api('/api/v3/exchangeInfo'); }
+  for (const s of info.symbols) {
+    if (s.status === 'TRADING' && s.quoteAsset === QUOTE && s.isSpotTradingAllowed !== false)
+      S.pairs.set(s.symbol, s.baseAsset);
+  }
+}
+
+async function refreshTickers() {
+  const t = await api('/api/v3/ticker/24hr?type=MINI');
+  for (const x of t) {
+    if (!S.pairs.has(x.symbol)) continue;
+    S.tick.set(x.symbol, { price: +x.lastPrice, vol: +x.quoteVolume });
+  }
+}
+
+// Symbols in volume order, after the Top-N and stablecoin filters (search is applied only at render)
+function universe() {
+  let list = [...S.pairs.keys()].filter(s => { const t = S.tick.get(s); return t && t.vol > 0 && t.price > 0; });
+  if (S.hideStable) list = list.filter(s => !STABLES.has(S.pairs.get(s)));
+  list.sort((a, b) => S.tick.get(b).vol - S.tick.get(a).vol);
+  if (S.top > 0) list = list.slice(0, S.top);
+  return list;
+}
+
+// Candles only need re-downloading when a candle closes; between closes the live EMA is
+// derived from the closed-candle EMA plus the current price, which is exactly how charts compute it.
+function schedule() {
+  const now = Date.now(), list = universe(), rank = new Map(list.map((s, i) => [s, i]));
+  for (const sym of list) for (const iv of IVS) {
+    const key = sym + '|' + iv, e = S.ema.get(key);
+    if ((!e || now >= e.refetchAt) && !S.pending.has(key)) {
+      S.pending.add(key); S.queue.push([sym, iv]); S.totalJobs++;
+    }
+  }
+  // drop queued jobs for tokens no longer shown (e.g. after switching to Top 50)
+  S.queue = S.queue.filter(([s, iv]) => {
+    if (rank.has(s)) return true;
+    S.pending.delete(s + '|' + iv); S.totalJobs = Math.max(0, S.totalJobs - 1); return false;
+  });
+  S.queue.sort((a, b) => rank.get(a[0]) - rank.get(b[0]) || IVS.indexOf(a[1]) - IVS.indexOf(b[1]));
+  pump();
+}
+
+let pumpTimer = null;
+function pump() {
+  while (S.active < CONCURRENCY && S.queue.length) {
+    const wait = pauseUntil - Date.now();
+    if (wait > 0) { if (!pumpTimer) pumpTimer = setTimeout(() => { pumpTimer = null; pump(); }, wait + 200); return; }
+    const [sym, iv] = S.queue.shift(), key = sym + '|' + iv;
+    S.active++;
+    fetchEma(sym, iv)
+      .catch(err => {
+        S.err = err.message;
+        const e = S.ema.get(key);
+        S.ema.set(key, { ema: e ? e.ema : null, refetchAt: Date.now() + 30000 });
+      })
+      .finally(() => { S.active--; S.pending.delete(key); requestRender(); pump(); });
+  }
+}
+
+async function fetchEma(sym, iv) {
+  const k = await api(`/api/v3/klines?symbol=${sym}&interval=${iv}&limit=${LIMIT}`);
+  const last = k[k.length - 1];
+  const closes = k.slice(0, -1).map(c => +c[4]);   // drop the candle still forming
+  let ema = null;
+  if (closes.length >= PERIOD) {
+    ema = closes.slice(0, PERIOD).reduce((a, b) => a + b, 0) / PERIOD;
+    for (let i = PERIOD; i < closes.length; i++) ema = closes[i] * K + ema * (1 - K);
+  }
+  const closeAt = last ? +last[6] + 1 : Date.now() + IV_MS[iv];
+  S.ema.set(sym + '|' + iv, { ema, refetchAt: closeAt + 1500 });
+}
+
+function distance(sym, iv) {
+  const e = S.ema.get(sym + '|' + iv), t = S.tick.get(sym);
+  if (!e || e.ema == null || !t) return null;
+  const live = e.ema + K * (t.price - e.ema);
+  return (t.price - live) / live * 100;
+}
+
+const fmtPrice = p => p >= 1000 ? p.toLocaleString('en-US', { maximumFractionDigits: 2 })
+  : p.toLocaleString('en-US', { maximumSignificantDigits: 5 });
+const fmtVol = v => v >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'K' : v.toFixed(0);
+function cell(p, iv) {
+  if (p == null) return '<div class="c na">–</div>';
+  const a = Math.min(Math.abs(p) / SCALE[iv], 1);
+  const rgb = p >= 0 ? '52,209,166' : '255,110,122';
+  const color = a > 0.55 ? '#fff' : (p >= 0 ? 'var(--up)' : 'var(--down)');
+  const txt = (p >= 0 ? '+' : '') + (Math.abs(p) >= 10 ? p.toFixed(1) : p.toFixed(2)) + '%';
+  return `<div class="c" style="background:rgba(${rgb},${(0.07 + a * 0.55).toFixed(3)});color:${color}">${txt}</div>`;
+}
+
+let renderTimer = null;
+function requestRender() { if (!renderTimer) renderTimer = setTimeout(() => { renderTimer = null; render(); }, 500); }
+
+function render() {
+  const list = universe();
+  let rows = list.map(sym => {
+    const t = S.tick.get(sym), d = {};
+    for (const iv of IVS) d[iv] = distance(sym, iv);
+    return { sym, base: S.pairs.get(sym), price: t.price, vol: t.vol, d };
+  });
+  const q = S.q.trim().toUpperCase();
+  if (q) rows = rows.filter(r => r.base.includes(q));
+  if (S.sortKey !== 'vol') {
+    const k = S.sortKey, dir = S.sortDir;
+    rows.sort((a, b) => (a.d[k] == null) - (b.d[k] == null) || dir * ((a.d[k] ?? 0) - (b.d[k] ?? 0)));
+  }
+  $('count').textContent = list.length ? `${list.length} pairs` : '';
+  $('list').innerHTML = rows.length
+    ? rows.map(r => `<a class="row" href="https://www.binance.com/en/trade/${r.base}_${QUOTE}?type=spot" target="_blank" rel="noopener">
+        <div class="tok"><b>${r.base}</b><span>$${fmtPrice(r.price)}</span><span>Vol $${fmtVol(r.vol)}</span></div>
+        ${IVS.map(iv => cell(r.d[iv], iv)).join('')}</a>`).join('')
+    : `<div class="empty">${q ? `No ${QUOTE} pair matches “${S.q}”.` : 'Waiting for data from Binance…'}</div>`;
+  renderHeader(); renderStatus();
+}
+
+function renderHeader() {
+  for (const b of $('cols').children) {
+    const k = b.dataset.k, on = k === S.sortKey;
+    b.classList.toggle('on', on);
+    const label = k === 'vol' ? 'Token' : k;
+    b.textContent = on ? `${label} ${S.sortDir < 0 ? '↓' : '↑'}` : label;
+  }
+  $('stable').setAttribute('aria-pressed', S.hideStable);
+  $('stable').textContent = S.hideStable ? 'No stables' : 'Stables on';
+  $('top').value = String(S.top);
+}
+
+function renderStatus() {
+  const left = S.queue.length + S.active;
+  const done = Math.max(0, S.totalJobs - left);
+  $('bar').style.width = left ? (done / S.totalJobs * 100).toFixed(1) + '%' : '0';
+  if (!left) S.totalJobs = 0;
+  const el = $('status');
+  if (S.err && Date.now() < pauseUntil) { el.className = 'status err'; el.textContent = S.err; return; }
+  if (!S.lastUpdate) { el.className = S.err ? 'status err' : 'status'; el.textContent = S.err || 'Connecting to Binance…'; return; }
+  el.className = 'status';
+  const t = new Date(S.lastUpdate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const next = Math.max(0, Math.ceil((S.nextAt - Date.now()) / 1000));
+  el.textContent = `Updated ${t}, next in ${next}s` + (left ? `, loading candles (${left} left)` : '');
+}
+
+async function cycle() {
+  if (document.hidden) return;
+  try { await refreshTickers(); S.lastUpdate = Date.now(); S.err = ''; }
+  catch (e) { S.err = e.message; }
+  schedule(); render();
+}
+let loopTimer = null;
+async function loop() {
+  clearTimeout(loopTimer);
+  S.nextAt = Date.now() + REFRESH;
+  await cycle();
+  S.nextAt = Date.now() + REFRESH;
+  loopTimer = setTimeout(loop, REFRESH);
+}
+
+// UI events
+$('cols').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const k = b.dataset.k;
+  if (k === 'vol') { S.sortKey = 'vol'; S.sortDir = -1; }
+  else if (S.sortKey === k) S.sortDir *= -1;
+  else { S.sortKey = k; S.sortDir = -1; }
+  render(); window.scrollTo({ top: 0 });
+});
+$('q').addEventListener('input', e => { S.q = e.target.value; render(); });
+$('top').addEventListener('change', e => { S.top = +e.target.value; savePrefs(); schedule(); render(); });
+$('stable').addEventListener('click', () => { S.hideStable = !S.hideStable; savePrefs(); schedule(); render(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - S.lastUpdate > 5000) loop(); });
+setInterval(renderStatus, 1000);
+
+(async () => {
+  renderHeader();
+  try { await loadPairs(); }
+  catch (e) {
+    $('status').className = 'status err';
+    $('status').textContent = e.message + '. Check your connection and reload.';
+    $('list').innerHTML = '<div class="empty">Could not load the Binance pair list. Pull down to reload.</div>';
+    return;
+  }
+  loop();
+})();
+})();
+</script>
+</body>
+</html>
