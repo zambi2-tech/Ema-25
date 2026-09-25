@@ -22,27 +22,36 @@ html,body{margin:0;background:var(--ink);color:var(--text);
 body{padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 body.lock{overflow:hidden}
 button{font-family:inherit;cursor:pointer}
-:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+:focus-visible,.pick:focus-within{outline:2px solid var(--gold);outline-offset:1px}
 
 header{position:sticky;top:0;z-index:5;background:var(--ink);
-  padding:calc(env(safe-area-inset-top) + 12px) 12px 0;border-bottom:1px solid var(--line)}
-.top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-h1{font-size:21px;margin:0;font-weight:700;letter-spacing:-.015em}
-h1 small{font-size:13px;font-weight:500;color:var(--gold);margin-left:4px}
-.count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
-.status{font-size:12px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums;min-height:15px}
+  padding:calc(env(safe-area-inset-top) + 10px) 12px 0;border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
+.mode{display:flex;gap:18px}
+.mode button{background:none;border:0;padding:0 0 4px;font-size:20px;font-weight:700;letter-spacing:-.015em;
+  color:var(--muted);border-bottom:2px solid transparent}
+.mode button[aria-selected=true]{color:var(--text);border-bottom-color:var(--gold)}
+.count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;padding-bottom:7px}
+.status{font-size:12px;color:var(--muted);margin-top:5px;font-variant-numeric:tabular-nums;min-height:15px}
 .status.err{color:var(--down)}
-.controls{display:flex;gap:6px;margin-top:10px}
+
+.controls{display:flex;gap:6px;margin-top:9px}
 input[type=search]{flex:1;min-width:0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);
   color:var(--text);border-radius:10px;font-size:16px;font-family:inherit}
 .btn{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:10px;
-  padding:8px 12px;font-size:14px;white-space:nowrap}
+  padding:8px 11px;font-size:14px;white-space:nowrap}
+.btn.icon{display:flex;align-items:center;padding:0 9px;color:var(--muted)}
+.pick{position:relative;display:flex;align-items:center;gap:5px}
+.pick select{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;
+  -webkit-appearance:none;appearance:none;border:0}
+.pick .k{color:var(--muted)}
 
 .seg{display:flex;gap:4px;margin-top:8px}
-.seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;
+.seg button,.seg .pick{flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;
   background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:9px;
-  padding:7px 2px;font-size:13px;font-weight:500}
+  padding:7px 5px;font-size:12.5px;font-weight:500;white-space:nowrap}
 .seg button[aria-pressed=true]{background:var(--panel);color:var(--text);border-color:var(--muted)}
+.seg .pick{flex:0 0 auto;color:var(--gold);border-color:rgba(240,185,11,.45);font-weight:600}
 .sw{width:13px;height:10px;border-radius:2px;flex:none;background:rgba(52,209,166,.3)}
 .sw.hold{box-shadow:inset 0 -3px 0 var(--gold)}
 .sw.test{box-shadow:inset 0 0 0 1.5px var(--gold),inset 0 -3px 0 var(--gold)}
@@ -85,9 +94,8 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 .sheet.open{transform:none;visibility:visible;transition:transform .25s ease,visibility 0s}
 .sheet h2{font-size:15px;font-weight:650;margin:20px 0 4px}
 .sheet h2:first-child{margin-top:0}
-.sheet p,.sheet li{font-size:13px;color:var(--muted);line-height:1.5}
-.sheet p{margin:0 0 10px;max-width:62ch}
-.sheet ul{margin:0 0 10px;padding-left:18px;max-width:62ch}
+.sheet h3{font-size:13px;font-weight:650;color:var(--text);margin:12px 0 2px}
+.sheet p{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 10px;max-width:62ch}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips button{background:var(--ink);border:1px solid var(--line);color:var(--muted);border-radius:9px;
   padding:8px 13px;font-size:14px;font-weight:600;min-width:52px}
@@ -100,29 +108,41 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 <body>
 <header>
   <div class="top">
-    <h1>EMA 25 distance <small>Binance</small></h1>
+    <div class="mode" id="mode" role="tablist" aria-label="Support line">
+      <button role="tab" data-m="ema" aria-selected="true">EMA 25</button>
+      <button role="tab" data-m="tl" aria-selected="false">Trendline</button>
+    </div>
     <span class="count" id="count"></span>
   </div>
   <div class="status" id="status">Connecting to Binance…</div>
   <div class="controls">
     <input type="search" id="q" placeholder="Search token" aria-label="Search token"
       autocomplete="off" autocapitalize="characters" spellcheck="false">
-    <button class="btn" id="openSettings" aria-haspopup="dialog">Settings</button>
+    <label class="btn pick"><span class="k">Sort</span><span id="sortLabel">Volume</span>
+      <select id="sort" aria-label="Sort tokens"></select></label>
+    <button class="btn icon" id="openSettings" aria-label="Settings" aria-haspopup="dialog">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/>
+        <circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+    </button>
   </div>
-  <div class="seg" id="filter" role="group" aria-label="Filter by EMA 25 support">
+  <div class="seg" id="filter" role="group" aria-label="Filter by support">
     <button data-f="all">All</button>
     <button data-f="sup"><i class="sw hold"></i>Support</button>
     <button data-f="test"><i class="sw test"></i>Testing</button>
     <button data-f="brk"><i class="sw brk"></i>Breaking</button>
+    <label class="pick"><span id="minLabel">Min ×2</span>
+      <select id="minB" aria-label="Minimum bounces"></select></label>
   </div>
   <div class="bar"><i id="bar"></i></div>
   <div class="cols" id="cols"></div>
 </header>
 <main id="list"><div class="empty">Loading pairs…</div></main>
 <footer>
-  Each cell shows how far the live price is from the EMA 25 on that timeframe. Green is above, red is below,
-  and stronger color means further away. Tap a column to sort by it, and tap again to flip. Tap a token to
-  open it on Binance. Open Settings to pick timeframes and see how support is detected. Not financial advice.
+  Each cell shows how far the live price is from the chosen line (EMA 25 or trendline) on that timeframe.
+  Green is above, red is below, and stronger color means further away. Tap a column to sort by it, and tap
+  again to flip. Use Sort to rank tokens by bounces on any timeframe. Tap a token to open it on Binance.
+  Not financial advice.
 </footer>
 
 <div class="scrim" id="scrim"></div>
@@ -136,16 +156,22 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
   <h2>Stablecoins</h2>
   <div class="chips" id="stableChips"></div>
   <h2>How support is detected</h2>
-  <p>On each timeframe, the app looks at the last 40 closed candles. The EMA 25 counts as support when all of these are true:</p>
-  <ul>
-    <li>The EMA 25 is sloping up.</li>
-    <li>Since price last closed below the EMA, it has dipped to it and closed back above it at least twice.
-      A dip counts when a candle's low comes within about a quarter of a normal candle's range of the EMA.</li>
-    <li>No candle has closed below the EMA since then.</li>
-  </ul>
-  <p>A gold line under a cell means support is holding, and the number shows how many bounces it has had.
-    A gold box means price is sitting on that support right now. A red dashed line means price has dropped
-    below a support that was holding; the break is confirmed if the candle closes there.</p>
+  <p>Tap EMA 25 or Trendline at the top to choose the support line. The percentages show how far price is
+    above (+) or below (−) that line, and the Min button sets how many bounces a support needs before it's marked.
+    A dip or touch counts when a candle's low comes within about a quarter of a normal candle's range of the line.</p>
+  <h3>EMA 25</h3>
+  <p>Using the last 40 closed candles, the EMA 25 counts as support when it's sloping up, price has dipped to it
+    and closed back above it at least your minimum number of times since it last closed below it, and no candle
+    has closed below it since then.</p>
+  <h3>Trendline</h3>
+  <p>The app finds swing lows (the lowest low among 3 candles on each side), tries every rising line through two
+    of them over the last 100 candles, and throws out any line a candle has closed below. The line with the most
+    touches is used. Every touch counts as a bounce, including the two lows that form the line, so 3 or more is
+    a confirmed trendline. A dash means no rising trendline was found on that timeframe.</p>
+  <h3>Markers</h3>
+  <p>A gold line under a cell means support is holding, and the number is how many bounces it has had. A gold box
+    means price is sitting on the support right now. A red dashed line means price has dropped below a support
+    that was holding; the break is confirmed if the candle closes there.</p>
   <p>These are rule-based signals from past candles, not predictions.</p>
   <button class="done" id="done">Done</button>
 </section>
@@ -162,16 +188,19 @@ const LIMIT = 99;             // candles downloaded the first time for each char
 const KEEP = 100;             // closed candles kept per chart
 const CONCURRENCY = 8;
 const WEIGHT_CAP = 4800;      // Binance allows 6000 request weight per minute per IP; stay under it
-// Support rules. Distances are measured in ATR (average range of the last 14 candles),
-// so the same rules work on every timeframe and every coin's volatility.
+// Distances below are in ATR (average range of the last 14 candles), so the rules
+// adapt to every timeframe and every coin's volatility.
 const SUP = {
-  lookback: 40,    // closed candles examined
-  minBounces: 2,   // separate dips to the EMA that closed back above it
-  touch: 0.25,     // a low within 0.25 ATR of the EMA (or below it) counts as a dip
-  breakTol: 0.1,   // a close more than 0.1 ATR below the EMA breaks support
-  slope: 5,        // EMA must be higher than it was this many candles ago
-  testZone: 0.3    // live price within 0.3 ATR above the EMA counts as testing it now
+  lookback: 40,    // EMA mode: closed candles examined
+  slope: 5,        // EMA mode: EMA must be higher than it was this many candles ago
+  touch: 0.25,     // a low within 0.25 ATR of the line (or below it) counts as a dip/touch
+  breakTol: 0.1,   // a close more than 0.1 ATR below the line breaks support
+  testZone: 0.3,   // live price within 0.3 ATR above the line counts as testing it now
+  pivot: 3,        // trendline mode: swing low = lowest low of 3 candles on each side
+  wickTol: 1.0     // trendline mode: a wick more than 1 ATR through the line rules the line out
 };
+const MIN_OPTIONS = { ema: [1, 2, 3, 4, 5, 6], tl: [2, 3, 4, 5, 6] };
+const MIN_DEFAULT = { ema: 2, tl: 3 };
 // ----------------------------------------------
 
 const K = 2 / (PERIOD + 1);
@@ -190,8 +219,9 @@ const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;
 const S = {
   pairs: new Map(), tick: new Map(), charts: new Map(),
   pending: new Set(), queue: [], active: 0,
+  mode: 'ema', minB: { ...MIN_DEFAULT },
   ivs: ALL_IVS.slice(), top: 0, hideStable: true, filter: 'all',
-  sortKey: 'vol', sortDir: -1, q: '',
+  sort: { by: 'vol', iv: '', dir: -1 }, q: '',
   lastUpdate: 0, nextAt: 0, tickErr: ''
 };
 try {
@@ -200,9 +230,16 @@ try {
   if (typeof p.hideStable === 'boolean') S.hideStable = p.hideStable;
   if (Array.isArray(p.ivs)) { const v = ALL_IVS.filter(iv => p.ivs.includes(iv)); if (v.length) S.ivs = v; }
   if (['all', 'sup', 'test', 'brk'].includes(p.filter)) S.filter = p.filter;
+  if (p.mode === 'ema' || p.mode === 'tl') S.mode = p.mode;
+  if (p.minB) for (const m of ['ema', 'tl']) if (MIN_OPTIONS[m].includes(p.minB[m])) S.minB[m] = p.minB[m];
+  if (p.sort && ['vol', 'pct', 'b'].includes(p.sort.by) && (p.sort.by === 'vol' || ALL_IVS.includes(p.sort.iv)))
+    S.sort = { by: p.sort.by, iv: p.sort.iv || '', dir: p.sort.dir === 1 ? 1 : -1 };
 } catch (_) {}
 function savePrefs() {
-  try { localStorage.setItem('ema25prefs', JSON.stringify({ top: S.top, hideStable: S.hideStable, ivs: S.ivs, filter: S.filter })); } catch (_) {}
+  try {
+    localStorage.setItem('ema25prefs', JSON.stringify({ top: S.top, hideStable: S.hideStable, ivs: S.ivs,
+      filter: S.filter, mode: S.mode, minB: S.minB, sort: S.sort }));
+  } catch (_) {}
 }
 
 // ---------- Binance API with rate-limit protection ----------
@@ -267,7 +304,7 @@ function universe() {
   return S.top > 0 ? list.slice(0, S.top) : list;
 }
 
-// ---------- Candles, EMA and support ----------
+// ---------- Candles, EMA, trendline and support ----------
 // Each chart keeps its closed candles plus the EMA at every candle. After the first download,
 // only the newest few candles are fetched when a candle closes, which saves a lot of mobile data.
 function build(closed) {
@@ -293,30 +330,67 @@ function append(ch, x) {
   if (extra > 0) for (const a of [ch.h, ch.l, ch.c, ch.e]) a.splice(0, extra);
 }
 
+// Best rising trendline through two swing lows that no candle has closed below.
+// Returns { a, ya, s, touches } where the line is y(i) = ya + s * (i - a).
+function findTrendline(ch) {
+  const n = ch.c.length, L = ch.l, C = ch.c, atr = ch.atr, P = SUP.pivot;
+  if (!(atr > 0) || n < 2 * P + 5) return null;
+  const piv = [];
+  for (let i = P; i < n - P; i++) {
+    let low = true;
+    for (let j = i - P; j <= i + P; j++) if (L[j] < L[i]) { low = false; break; }
+    if (low) piv.push(i);
+  }
+  const touchTol = SUP.touch * atr, breakTol = SUP.breakTol * atr, wickTol = SUP.wickTol * atr;
+  let best = null;
+  for (let x = 0; x < piv.length; x++) {
+    const a = piv[x];
+    for (let y = x + 1; y < piv.length; y++) {
+      const b = piv[y];
+      if (L[b] <= L[a]) continue;                       // rising lines only
+      const s = (L[b] - L[a]) / (b - a);
+      let touches = 0, touching = false, last = a, ok = true;
+      for (let i = a; i < n; i++) {
+        const v = L[a] + s * (i - a);
+        if (C[i] < v - breakTol || L[i] < v - wickTol) { ok = false; break; }
+        const t = L[i] <= v + touchTol;
+        if (t && !touching) { touches++; last = i; }
+        touching = t;
+      }
+      if (!ok) continue;
+      if (!best || touches > best.touches || (touches === best.touches && (last > best.last || (last === best.last && a < best.a))))
+        best = { a, ya: L[a], s, touches, last };
+    }
+  }
+  return best;
+}
+
 function derive(ch) {
   const n = ch.c.length, e = ch.e;
-  ch.ema = n ? e[n - 1] : null; ch.atr = 0; ch.bounces = 0; ch.support = false;
-  if (ch.ema == null) return;
+  ch.ema = n ? e[n - 1] : null; ch.atr = 0; ch.bounces = 0; ch.rising = false; ch.tl = null;
   let tr = 0, m = 0;
   for (let i = Math.max(1, n - 14); i < n; i++) {
     tr += Math.max(ch.h[i] - ch.l[i], Math.abs(ch.h[i] - ch.c[i - 1]), Math.abs(ch.l[i] - ch.c[i - 1]));
     m++;
   }
   ch.atr = m ? tr / m : 0;
+  if (!(ch.atr > 0)) return;
+  ch.tl = findTrendline(ch);
+  if (ch.ema == null) return;
+  // EMA support: count separate dips since the last close below the EMA
   const firstE = e.findIndex(v => v != null);
   const start = Math.max(firstE + 10, n - SUP.lookback);     // skip the EMA's warm-up candles
-  if (!(ch.atr > 0) || n - start < 10 || n - 1 - SUP.slope < firstE) return;
+  if (n - start < 10 || n - 1 - SUP.slope < firstE) return;
   let lastBreak = -1;
   for (let i = start; i < n; i++) if (ch.c[i] < e[i] - SUP.breakTol * ch.atr) lastBreak = i;
   let bounces = 0, touching = false;
-  // count separate dips since the last close below the EMA (skipping the candle that reclaimed it)
-  for (let i = lastBreak >= 0 ? lastBreak + 2 : start; i < n; i++) {
+  for (let i = lastBreak >= 0 ? lastBreak + 2 : start; i < n; i++) {   // skip the candle that reclaimed it
     const t = ch.l[i] <= e[i] + SUP.touch * ch.atr;
     if (t && !touching) bounces++;
     touching = t;
   }
   ch.bounces = bounces;
-  ch.support = bounces >= SUP.minBounces && e[n - 1] > e[n - 1 - SUP.slope];
+  ch.rising = e[n - 1] > e[n - 1 - SUP.slope];
 }
 
 async function loadChart(sym, iv) {
@@ -384,11 +458,21 @@ function pump() {
 // ---------- Live values ----------
 function state(sym, iv) {
   const ch = S.charts.get(sym + '|' + iv), t = S.tick.get(sym);
-  if (!ch || ch.ema == null || !t) return null;
-  const live = ch.ema + K * (t.price - ch.ema);          // EMA including the candle still forming
-  const s = { pct: (t.price - live) / live * 100, sup: '', b: ch.bounces };
-  if (ch.support) {
-    const d = (t.price - live) / ch.atr;
+  if (!ch || !t) return null;
+  let ref, b, ok;
+  if (S.mode === 'ema') {
+    if (ch.ema == null) return null;
+    ref = ch.ema + K * (t.price - ch.ema);            // EMA including the candle still forming
+    b = ch.bounces; ok = ch.rising && b >= S.minB.ema;
+  } else {
+    if (!ch.tl) return null;
+    ref = ch.tl.ya + ch.tl.s * (ch.c.length - ch.tl.a); // line extended to the candle still forming
+    b = ch.tl.touches; ok = b >= S.minB.tl;
+  }
+  if (!(ref > 0)) return null;
+  const s = { pct: (t.price - ref) / ref * 100, sup: '', b };
+  if (ok && ch.atr > 0) {
+    const d = (t.price - ref) / ch.atr;
     s.sup = d > SUP.testZone ? 'hold' : d >= -SUP.breakTol ? 'test' : 'brk';
   }
   return s;
@@ -405,8 +489,11 @@ function fmtPrice(p) {
   if (d >= 10000) { z -= 1; d = Math.round(d / 10); }
   return '$0.0' + String(z).split('').map(x => SUBS[x]).join('') + d;
 }
-const fmtVol = v => v >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : v >= 1e6 ? (v / 1e6).toFixed(1) + 'M'
-  : v >= 1e3 ? (v / 1e3).toFixed(0) + 'K' : v.toFixed(0);
+function fmtVol(v) {
+  const [d, u] = v >= 1e9 ? [1e9, 'B'] : v >= 1e6 ? [1e6, 'M'] : v >= 1e3 ? [1e3, 'K'] : [1, ''];
+  const x = v / d;
+  return (x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2)) + u;
+}
 
 function cell(s, iv) {
   if (!s) return '<div class="c na">–</div>';
@@ -430,14 +517,11 @@ function layout() {
 let renderTimer = null;
 function requestRender() { if (!renderTimer) renderTimer = setTimeout(() => { renderTimer = null; render(); }, 500); }
 
-const EMPTY = {
-  sup: 'No token has EMA 25 support on the selected timeframes right now.',
-  test: 'No token is sitting on EMA 25 support right now.',
-  brk: 'No EMA 25 support is breaking right now.'
-};
+const bKey = s => s && s.sup ? s.b : -1;
 
 function render() {
-  const list = universe(), ivs = S.ivs;
+  const list = universe(), ivs = S.ivs, so = S.sort;
+  if (so.by !== 'vol' && !ivs.includes(so.iv)) S.sort = { by: 'vol', iv: '', dir: -1 };
   let rows = list.map(sym => {
     const t = S.tick.get(sym), st = {};
     for (const iv of ivs) st[iv] = state(sym, iv);
@@ -449,17 +533,23 @@ function render() {
     const s = r.st[iv];
     return s && (S.filter === 'sup' ? s.sup === 'hold' || s.sup === 'test' : s.sup === S.filter);
   }));
-  if (S.sortKey !== 'vol') {
-    const k = S.sortKey, dir = S.sortDir;
+  const k = S.sort.iv;
+  if (S.sort.by === 'pct') {
+    const dir = S.sort.dir;
     rows.sort((a, b) => {
       const x = a.st[k], y = b.st[k];
       return (!x || !y) ? (!x) - (!y) : dir * (x.pct - y.pct);
     });
+  } else if (S.sort.by === 'b') {
+    rows.sort((a, b) => bKey(b.st[k]) - bKey(a.st[k]));   // ties keep volume order
   }
   $('count').textContent = !list.length ? '' : rows.length === list.length ? `${list.length} pairs` : `${rows.length} of ${list.length}`;
+  const line = S.mode === 'ema' ? 'EMA 25' : 'trendline', min = S.minB[S.mode];
   let empty = 'Waiting for data from Binance…';
   if (q) empty = `No ${QUOTE} pair matches “${esc(S.q.trim())}”.`;
-  else if (list.length && S.filter !== 'all') empty = EMPTY[S.filter];
+  else if (list.length && S.filter === 'sup') empty = `No token has ${line} support with ${min}+ bounces on the selected timeframes right now.`;
+  else if (list.length && S.filter === 'test') empty = `No token is sitting on ${line} support with ${min}+ bounces right now.`;
+  else if (list.length && S.filter === 'brk') empty = `No ${line} support with ${min}+ bounces is breaking right now.`;
   $('list').innerHTML = rows.length
     ? rows.map(r => `<a class="row" href="https://www.binance.com/en/trade/${r.base}_${QUOTE}?type=spot" target="_blank" rel="noopener">`
         + `<div class="tok"><b>${esc(r.base)}</b><span>${fmtPrice(r.price)}</span><span>Vol ${fmtVol(r.vol)}</span></div>`
@@ -470,14 +560,30 @@ function render() {
 
 let headKey = '';
 function renderHeader() {
-  const key = S.ivs.join() + '|' + S.sortKey + '|' + S.sortDir;
-  if (key !== headKey) {
-    headKey = key;
-    const mark = k => S.sortKey === k ? (S.sortDir < 0 ? ' ↓' : ' ↑') : '';
-    $('cols').innerHTML = `<button data-k="vol" class="${S.sortKey === 'vol' ? 'on' : ''}">Token${mark('vol')}</button>`
-      + S.ivs.map(iv => `<button data-k="${iv}" class="${S.sortKey === iv ? 'on' : ''}">${LABEL[iv]}${mark(iv)}</button>`).join('');
-  }
-  for (const b of $('filter').children) b.setAttribute('aria-pressed', String(b.dataset.f === S.filter));
+  const so = S.sort;
+  const key = [S.ivs.join(), so.by, so.iv, so.dir, S.mode, S.minB[S.mode], S.filter].join('|');
+  if (key === headKey) return;
+  headKey = key;
+  const mark = iv => so.iv !== iv ? '' : so.by === 'b' ? ' ×' : so.by === 'pct' ? (so.dir < 0 ? ' ↓' : ' ↑') : '';
+  $('cols').innerHTML = `<button data-k="vol" class="${so.by === 'vol' ? 'on' : ''}">Token${so.by === 'vol' ? ' ↓' : ''}</button>`
+    + S.ivs.map(iv => `<button data-k="${iv}" class="${so.by !== 'vol' && so.iv === iv ? 'on' : ''}">${LABEL[iv]}${mark(iv)}</button>`).join('');
+  for (const b of $('filter').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.f === S.filter));
+  for (const b of $('mode').querySelectorAll('button')) b.setAttribute('aria-selected', String(b.dataset.m === S.mode));
+
+  const group = (label, fn) => `<optgroup label="${label}">${S.ivs.map(iv => `<option value="${fn(iv)}">${LABEL[iv]}</option>`).join('')}</optgroup>`;
+  $('sort').innerHTML = '<option value="vol">24h volume</option>'
+    + group('Most bounces first', iv => `b:${iv}`)
+    + group('Highest % first', iv => `pct:${iv}:-1`)
+    + group('Lowest % first', iv => `pct:${iv}:1`);
+  $('sort').value = so.by === 'vol' ? 'vol' : so.by === 'b' ? `b:${so.iv}` : `pct:${so.iv}:${so.dir}`;
+  $('sortLabel').textContent = so.by === 'vol' ? 'Volume' : so.by === 'b' ? `Bounces ${LABEL[so.iv]}`
+    : `${LABEL[so.iv]} % ${so.dir < 0 ? '↓' : '↑'}`;
+
+  const min = S.minB[S.mode];
+  $('minB').innerHTML = MIN_OPTIONS[S.mode].map(v => `<option value="${v}">At least ${v} bounce${v > 1 ? 's' : ''}</option>`).join('');
+  $('minB').value = String(min);
+  $('minLabel').textContent = `Min ×${min}`;
+  document.title = S.mode === 'ema' ? 'EMA 25 distance' : 'Trendline distance';
 }
 
 function coverage() {
@@ -524,7 +630,6 @@ $('ivChips').addEventListener('click', e => {
   const iv = b.dataset.iv, on = S.ivs.includes(iv);
   if (on && S.ivs.length === 1) return;                   // keep at least one timeframe
   S.ivs = ALL_IVS.filter(x => x === iv ? !on : S.ivs.includes(x));
-  if (S.sortKey !== 'vol' && !S.ivs.includes(S.sortKey)) { S.sortKey = 'vol'; S.sortDir = -1; }
   settingsChanged();
 });
 $('topChips').addEventListener('click', e => {
@@ -535,17 +640,27 @@ $('stableChips').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   S.hideStable = b.dataset.st === '1'; settingsChanged();
 });
+$('mode').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.dataset.m === S.mode) return;
+  S.mode = b.dataset.m; savePrefs(); render();
+});
 $('filter').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   S.filter = b.dataset.f; savePrefs(); render();
 });
+$('minB').addEventListener('change', e => { S.minB[S.mode] = +e.target.value; savePrefs(); render(); });
+$('sort').addEventListener('change', e => {
+  const [by, iv, dir] = e.target.value.split(':');
+  S.sort = by === 'vol' ? { by: 'vol', iv: '', dir: -1 } : { by, iv, dir: by === 'pct' ? +dir : -1 };
+  savePrefs(); render(); window.scrollTo({ top: 0 });
+});
 $('cols').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const k = b.dataset.k;
-  if (k === 'vol') { S.sortKey = 'vol'; S.sortDir = -1; }
-  else if (S.sortKey === k) S.sortDir *= -1;
-  else { S.sortKey = k; S.sortDir = -1; }
-  render(); window.scrollTo({ top: 0 });
+  if (k === 'vol') S.sort = { by: 'vol', iv: '', dir: -1 };
+  else if (S.sort.by === 'pct' && S.sort.iv === k) S.sort.dir *= -1;
+  else S.sort = { by: 'pct', iv: k, dir: -1 };
+  savePrefs(); render(); window.scrollTo({ top: 0 });
 });
 $('q').addEventListener('input', e => { S.q = e.target.value; render(); });
 
