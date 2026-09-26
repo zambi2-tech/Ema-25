@@ -12,7 +12,7 @@
 <style>
 :root{
   --ink:#131A2B; --panel:#1B2440; --line:#2A3558; --text:#E8EBF4; --muted:#8C96B3;
-  --up:#34D1A6; --down:#FF6E7A; --gold:#F0B90B;
+  --up:#34D1A6; --down:#FF6E7A; --gold:#F0B90B; --ema:#A99BFF;
   --n:6; --tok:1.1fr; --fs:11.5px; --tfs:14px;
 }
 *{box-sizing:border-box}
@@ -23,6 +23,7 @@ body{padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-a
 body.lock{overflow:hidden}
 button{font-family:inherit;cursor:pointer}
 :focus-visible,.pick:focus-within{outline:2px solid var(--gold);outline-offset:1px}
+.up{color:var(--up)} .dn{color:var(--down)}
 
 header{position:sticky;top:0;z-index:5;background:var(--ink);
   padding:calc(env(safe-area-inset-top) + 10px) 12px 0;border-bottom:1px solid var(--line)}
@@ -39,7 +40,7 @@ header{position:sticky;top:0;z-index:5;background:var(--ink);
 input[type=search]{flex:1;min-width:0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);
   color:var(--text);border-radius:10px;font-size:16px;font-family:inherit}
 .btn{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:10px;
-  padding:8px 11px;font-size:14px;white-space:nowrap}
+  padding:8px 11px;font-size:14px;white-space:nowrap;text-decoration:none}
 .btn.icon{display:flex;align-items:center;padding:0 9px;color:var(--muted)}
 .pick{position:relative;display:flex;align-items:center;gap:5px}
 .pick select{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;
@@ -59,7 +60,7 @@ input[type=search]{flex:1;min-width:0;padding:8px 10px;background:var(--panel);b
 
 .bar{height:2px;margin:10px -12px 0;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .3s}
-.cols,a.row{display:grid;grid-template-columns:minmax(0,var(--tok)) repeat(var(--n),minmax(0,1fr));gap:3px}
+.cols,.row{display:grid;grid-template-columns:minmax(0,var(--tok)) repeat(var(--n),minmax(0,1fr));gap:3px}
 .cols{padding:6px 0}
 .cols button{background:none;border:0;color:var(--muted);font-size:12px;font-weight:600;padding:4px 0;
   border-radius:6px;text-align:center;white-space:nowrap}
@@ -67,7 +68,7 @@ input[type=search]{flex:1;min-width:0;padding:8px 10px;background:var(--panel);b
 .cols button.on{color:var(--text)}
 
 main{padding:4px 12px 16px}
-a.row{text-decoration:none;color:inherit;padding:3px 0;border-bottom:1px solid rgba(42,53,88,.55)}
+.row{cursor:pointer;padding:3px 0;border-bottom:1px solid rgba(42,53,88,.55)}
 .tok{display:flex;flex-direction:column;justify-content:center;min-width:0;padding-right:2px}
 .tok b{font-size:var(--tfs);font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tok span{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;
@@ -84,6 +85,7 @@ a.row{text-decoration:none;color:inherit;padding:3px 0;border-bottom:1px solid r
 .empty{color:var(--muted);text-align:center;padding:40px 12px;font-size:14px;line-height:1.5}
 footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;max-width:70ch}
 
+/* settings sheet */
 .scrim{position:fixed;inset:0;background:rgba(5,8,16,.6);z-index:10;opacity:0;pointer-events:none;transition:opacity .2s}
 .scrim.open{opacity:1;pointer-events:auto}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;max-height:88vh;overflow-y:auto;
@@ -102,7 +104,62 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 .chips button[aria-pressed=true]{border-color:var(--gold);color:var(--gold)}
 .done{display:block;width:100%;margin-top:20px;background:var(--gold);color:#1A1400;border:0;
   border-radius:12px;padding:13px;font-size:16px;font-weight:650}
-@media (prefers-reduced-motion:reduce){.sheet,.sheet.open,.scrim,.bar i{transition:none}}
+
+/* token detail */
+.detail{position:fixed;inset:0;z-index:20;background:var(--ink);overflow-y:auto;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  padding:calc(env(safe-area-inset-top) + 6px) calc(env(safe-area-inset-right) + 12px)
+    calc(env(safe-area-inset-bottom) + 28px) calc(env(safe-area-inset-left) + 12px);
+  transform:translateX(100%);visibility:hidden;transition:transform .25s ease,visibility 0s linear .25s}
+.detail.open{transform:none;visibility:visible;transition:transform .25s ease,visibility 0s}
+.dhead{display:flex;justify-content:space-between;align-items:center;min-height:44px}
+.back{background:none;border:0;color:var(--gold);font-size:16px;font-weight:600;padding:8px 8px 8px 0}
+.dtitle{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-top:4px}
+.dtitle h2{margin:0;font-size:26px;font-weight:700;letter-spacing:-.02em;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dtitle h2 span{font-size:15px;color:var(--muted);font-weight:500;margin-left:2px}
+.dprice{text-align:right;font-size:20px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dprice small{display:block;font-size:12px;font-weight:600}
+.tfs{display:flex;margin-top:12px;border-bottom:1px solid var(--line)}
+.tfs button{flex:1;background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;
+  color:var(--muted);font-size:14px;font-weight:600;padding:9px 0}
+.tfs button[aria-selected=true]{color:var(--text);border-bottom-color:var(--gold)}
+.chart{margin-top:10px;min-height:290px}
+.chart svg{display:block;width:100%;height:auto}
+.cmsg{height:290px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.legend button{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);
+  border-radius:999px;padding:6px 12px;font-size:13px;color:var(--text)}
+.legend button[aria-pressed=false]{opacity:.45}
+.legend i{width:16px;height:3px;border-radius:2px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:16px 0 0;font-size:14px}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.facts dd.big{font-size:17px;color:var(--gold)}
+.facts dd.big.ema{color:var(--ema)}
+.facts .sep{grid-column:1/-1;height:1px;background:var(--line);margin:6px 0}
+.facts .none{grid-column:1/-1;color:var(--muted)}
+.dsec{font-size:15px;font-weight:650;margin:24px 0 2px}
+.dnote{font-size:12px;color:var(--muted);margin:0 0 8px}
+.tft{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.tft th{color:var(--muted);font-weight:600;font-size:12px;text-align:right;padding:0 0 6px}
+.tft th:first-child,.tft td:first-child{text-align:left}
+.tft td{padding:8px 0;border-top:1px solid var(--line);text-align:right;vertical-align:top;font-weight:600}
+.tft td small{display:block;font-size:11px;color:var(--muted);font-weight:500}
+.tft tr{cursor:pointer}
+.tft tr.on td:first-child{color:var(--gold)}
+.g-grid{stroke:rgba(42,53,88,.8);stroke-width:1}
+.g-ax{fill:var(--muted);font-size:9.5px}
+.cu{stroke:var(--up);fill:var(--up)} .cd{stroke:var(--down);fill:var(--down)}
+.g-live{opacity:.6}
+.g-ema{fill:none;stroke:var(--ema);stroke-width:1.5}
+.g-tl{stroke:var(--gold);stroke-width:1.75;fill:none}
+.g-proj{stroke-dasharray:4 3}
+.g-touch{fill:var(--ink);stroke:var(--gold);stroke-width:1.75}
+.g-pl{stroke-width:1;stroke-dasharray:2 3}
+.g-pl.cu{fill:none} .g-pl.cd{fill:none}
+.t-up{fill:var(--up)} .t-dn{fill:var(--down)} .t-tl{fill:var(--gold)} .t-ema{fill:var(--ema)}
+.g-tagt{font-size:10px;font-weight:700;fill:#0B0F1A}
+@media (prefers-reduced-motion:reduce){.sheet,.sheet.open,.scrim,.bar i,.detail,.detail.open{transition:none}}
 </style>
 </head>
 <body>
@@ -141,8 +198,8 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 <footer>
   Each cell shows how far the live price is from the chosen line (EMA 25 or trendline) on that timeframe.
   Green is above, red is below, and stronger color means further away. Tap a column to sort by it, and tap
-  again to flip. Use Sort to rank tokens by bounces on any timeframe. Tap a token to open it on Binance.
-  Not financial advice.
+  again to flip. Use Sort to rank tokens by bounces on any timeframe. Tap a token, or one of its cells, to see
+  its chart with the trendline, the EMA 25 and their current prices. Not financial advice.
 </footer>
 
 <div class="scrim" id="scrim"></div>
@@ -172,8 +229,27 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
   <p>A gold line under a cell means support is holding, and the number is how many bounces it has had. A gold box
     means price is sitting on the support right now. A red dashed line means price has dropped below a support
     that was holding; the break is confirmed if the candle closes there.</p>
+  <p>Tap any token to see its chart with the trendline drawn in, plus the exact trendline and EMA 25 prices.</p>
   <p>These are rule-based signals from past candles, not predictions.</p>
   <button class="done" id="done">Done</button>
+</section>
+
+<section class="detail" id="detail" role="dialog" aria-modal="true" aria-label="Token chart">
+  <div class="dhead">
+    <button class="back" id="back">‹ All tokens</button>
+    <a class="btn" id="dBinance" target="_blank" rel="noopener">Open on Binance ↗</a>
+  </div>
+  <div class="dtitle"><h2 id="dSym"></h2><div class="dprice" id="dPrice"></div></div>
+  <div class="tfs" id="dTfs" role="tablist" aria-label="Chart timeframe"></div>
+  <div class="chart" id="chart"></div>
+  <div class="legend" id="dLegend">
+    <button data-show="tl" aria-pressed="true"><i style="background:var(--gold)"></i>Trendline</button>
+    <button data-show="ema" aria-pressed="true"><i style="background:var(--ema)"></i>EMA 25</button>
+  </div>
+  <dl class="facts" id="dFacts"></dl>
+  <h3 class="dsec">All timeframes</h3>
+  <p class="dnote">Current trendline and EMA 25 price on each timeframe. Tap a row to chart it.</p>
+  <table class="tft" id="dTable"></table>
 </section>
 
 <script>
@@ -217,11 +293,12 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
 const S = {
-  pairs: new Map(), tick: new Map(), charts: new Map(),
+  pairs: new Map(), dec: new Map(), tick: new Map(), charts: new Map(),
   pending: new Set(), queue: [], active: 0,
   mode: 'ema', minB: { ...MIN_DEFAULT },
   ivs: ALL_IVS.slice(), top: 0, hideStable: true, filter: 'all',
   sort: { by: 'vol', iv: '', dir: -1 }, q: '',
+  detail: null, show: { tl: true, ema: true },
   lastUpdate: 0, nextAt: 0, tickErr: ''
 };
 try {
@@ -234,11 +311,12 @@ try {
   if (p.minB) for (const m of ['ema', 'tl']) if (MIN_OPTIONS[m].includes(p.minB[m])) S.minB[m] = p.minB[m];
   if (p.sort && ['vol', 'pct', 'b'].includes(p.sort.by) && (p.sort.by === 'vol' || ALL_IVS.includes(p.sort.iv)))
     S.sort = { by: p.sort.by, iv: p.sort.iv || '', dir: p.sort.dir === 1 ? 1 : -1 };
+  if (p.show) S.show = { tl: p.show.tl !== false, ema: p.show.ema !== false };
 } catch (_) {}
 function savePrefs() {
   try {
     localStorage.setItem('ema25prefs', JSON.stringify({ top: S.top, hideStable: S.hideStable, ivs: S.ivs,
-      filter: S.filter, mode: S.mode, minB: S.minB, sort: S.sort }));
+      filter: S.filter, mode: S.mode, minB: S.minB, sort: S.sort, show: S.show }));
   } catch (_) {}
 }
 
@@ -286,14 +364,17 @@ async function loadPairs() {
   try { info = await api('/api/v3/exchangeInfo?symbolStatus=TRADING', 20); }
   catch (_) { info = await api('/api/v3/exchangeInfo', 20); }
   for (const s of info.symbols) {
-    if (s.status === 'TRADING' && s.quoteAsset === QUOTE && s.isSpotTradingAllowed !== false)
-      S.pairs.set(s.symbol, s.baseAsset);
+    if (s.status !== 'TRADING' || s.quoteAsset !== QUOTE || s.isSpotTradingAllowed === false) continue;
+    S.pairs.set(s.symbol, s.baseAsset);
+    const pf = (s.filters || []).find(f => f.filterType === 'PRICE_FILTER');   // tick size -> decimals for exact prices
+    if (pf && pf.tickSize) S.dec.set(s.symbol, (String(pf.tickSize).replace(/0+$/, '').split('.')[1] || '').length);
   }
 }
 
 async function refreshTickers() {
   const t = await api('/api/v3/ticker/24hr?type=MINI', 80);
-  for (const x of t) if (S.pairs.has(x.symbol)) S.tick.set(x.symbol, { price: +x.lastPrice, vol: +x.quoteVolume });
+  for (const x of t) if (S.pairs.has(x.symbol))
+    S.tick.set(x.symbol, { price: +x.lastPrice, vol: +x.quoteVolume, open: +x.openPrice });
 }
 
 // Tokens in volume order after the Top-N and stablecoin settings (search and filters apply at display time)
@@ -308,11 +389,11 @@ function universe() {
 // Each chart keeps its closed candles plus the EMA at every candle. After the first download,
 // only the newest few candles are fetched when a candle closes, which saves a lot of mobile data.
 function build(closed) {
-  const ch = { h: [], l: [], c: [], e: [], lastOpen: 0 };
+  const ch = { o: [], h: [], l: [], c: [], e: [], lastOpen: 0 };
   let sum = 0;
   closed.forEach((x, i) => {
     const c = +x[4];
-    ch.h.push(+x[2]); ch.l.push(+x[3]); ch.c.push(c);
+    ch.o.push(+x[1]); ch.h.push(+x[2]); ch.l.push(+x[3]); ch.c.push(c);
     if (i < PERIOD - 1) { sum += c; ch.e.push(null); }
     else if (i === PERIOD - 1) { sum += c; ch.e.push(sum / PERIOD); }
     else ch.e.push(c * K + ch.e[i - 1] * (1 - K));
@@ -323,11 +404,11 @@ function build(closed) {
 
 function append(ch, x) {
   const c = +x[4], prev = ch.e[ch.e.length - 1];
-  ch.h.push(+x[2]); ch.l.push(+x[3]); ch.c.push(c);
+  ch.o.push(+x[1]); ch.h.push(+x[2]); ch.l.push(+x[3]); ch.c.push(c);
   ch.e.push(c * K + prev * (1 - K));
   ch.lastOpen = +x[0];
   const extra = ch.c.length - KEEP;
-  if (extra > 0) for (const a of [ch.h, ch.l, ch.c, ch.e]) a.splice(0, extra);
+  if (extra > 0) for (const a of [ch.o, ch.h, ch.l, ch.c, ch.e]) a.splice(0, extra);
 }
 
 // Best rising trendline through two swing lows that no candle has closed below.
@@ -363,6 +444,22 @@ function findTrendline(ch) {
     }
   }
   return best;
+}
+
+// Candle index of each touch of the trendline (the closest candle of each touch), for drawing
+function touchPoints(ch) {
+  const tl = ch.tl, pts = [];
+  if (!tl) return pts;
+  const tol = SUP.touch * ch.atr;
+  let best = -1, gapBest = Infinity, touching = false;
+  for (let i = tl.a; i < ch.c.length; i++) {
+    const v = tl.ya + tl.s * (i - tl.a), t = ch.l[i] <= v + tol, gap = Math.abs(ch.l[i] - v);
+    if (t && (!touching || gap < gapBest)) { best = i; gapBest = gap; }
+    if (!t && touching) pts.push(best);
+    touching = t;
+  }
+  if (touching) pts.push(best);
+  return pts;
 }
 
 function derive(ch) {
@@ -412,9 +509,18 @@ async function loadChart(sym, iv) {
     ch = build(k.filter(x => +x[6] < now));        // closed candles only
   }
   derive(ch);
-  const now = serverNow(), forming = k.find(x => +x[6] >= now);
-  ch.refetchAt = (forming ? +forming[6] : ch.lastOpen + 2 * IV_MS[iv]) + 1500;
+  const now = serverNow(), f = k.find(x => +x[6] >= now);
+  ch.forming = f ? { o: +f[1], h: +f[2], l: +f[3], c: +f[4] } : null;   // candle still forming, for the chart
+  ch.refetchAt = (f ? +f[6] : ch.lastOpen + 2 * IV_MS[iv]) + 1500;
   S.charts.set(key, ch);
+}
+
+// One download at a time per chart, even if the list and the chart view both ask for it
+const inflight = new Map();
+function loadChartOnce(sym, iv) {
+  const key = sym + '|' + iv;
+  if (!inflight.has(key)) inflight.set(key, loadChart(sym, iv).finally(() => inflight.delete(key)));
+  return inflight.get(key);
 }
 
 // ---------- Download queue ----------
@@ -445,24 +551,25 @@ function pump() {
     }
     const [sym, iv] = S.queue.shift(), key = sym + '|' + iv;
     S.active++;
-    loadChart(sym, iv)
-      .catch(() => {
-        const ch = S.charts.get(key);
-        if (ch) ch.refetchAt = serverNow() + 30000;
-        else S.charts.set(key, { ema: null, refetchAt: serverNow() + 30000 });
-      })
+    loadChartOnce(sym, iv)
+      .catch(() => markFailed(key))
       .finally(() => { S.active--; S.pending.delete(key); requestRender(); pump(); });
   }
 }
+function markFailed(key) {
+  const ch = S.charts.get(key);
+  if (ch) ch.refetchAt = serverNow() + 30000;
+  else S.charts.set(key, { ema: null, refetchAt: serverNow() + 30000 });
+}
 
 // ---------- Live values ----------
-function state(sym, iv) {
-  const ch = S.charts.get(sym + '|' + iv), t = S.tick.get(sym);
-  if (!ch || !t) return null;
+// Where a line is now (at the candle still forming) and how price sits against it
+function lineInfo(ch, price, kind) {
+  if (!ch || !ch.c) return null;
   let ref, b, ok;
-  if (S.mode === 'ema') {
+  if (kind === 'ema') {
     if (ch.ema == null) return null;
-    ref = ch.ema + K * (t.price - ch.ema);            // EMA including the candle still forming
+    ref = ch.ema + K * (price - ch.ema);              // EMA including the candle still forming
     b = ch.bounces; ok = ch.rising && b >= S.minB.ema;
   } else {
     if (!ch.tl) return null;
@@ -470,39 +577,65 @@ function state(sym, iv) {
     b = ch.tl.touches; ok = b >= S.minB.tl;
   }
   if (!(ref > 0)) return null;
-  const s = { pct: (t.price - ref) / ref * 100, sup: '', b };
+  const r = { ref, b, ok, pct: (price - ref) / ref * 100, sup: '' };
   if (ok && ch.atr > 0) {
-    const d = (t.price - ref) / ch.atr;
-    s.sup = d > SUP.testZone ? 'hold' : d >= -SUP.breakTol ? 'test' : 'brk';
+    const d = (price - ref) / ch.atr;
+    r.sup = d > SUP.testZone ? 'hold' : d >= -SUP.breakTol ? 'test' : 'brk';
   }
-  return s;
+  return r;
+}
+function state(sym, iv) {
+  const t = S.tick.get(sym);
+  return t ? lineInfo(S.charts.get(sym + '|' + iv), t.price, S.mode) : null;
 }
 
-// ---------- Display ----------
+// ---------- Formatting ----------
 const SUBS = '₀₁₂₃₄₅₆₇₈₉';
-function fmtPrice(p) {
-  if (p >= 10000) return '$' + p.toLocaleString('en-US', { maximumFractionDigits: 0 });
-  if (p >= 1000) return '$' + p.toLocaleString('en-US', { maximumFractionDigits: 1 });
-  if (p >= 0.0001) return '$' + p.toLocaleString('en-US', { maximumSignificantDigits: 4 });
+function compact(p, sig) {
+  if (p >= 10000) return p.toLocaleString('en-US', { maximumFractionDigits: sig > 4 ? 1 : 0 });
+  if (p >= 1000) return p.toLocaleString('en-US', { maximumFractionDigits: sig > 4 ? 2 : 1 });
+  if (p >= 0.0001) return p.toLocaleString('en-US', { maximumSignificantDigits: sig });
   // tiny prices in Binance style: 0.00001234 -> 0.0₄1234
   let z = Math.ceil(-Math.log10(p) - 1e-9) - 1, d = Math.round(p * Math.pow(10, z + 4));
   if (d >= 10000) { z -= 1; d = Math.round(d / 10); }
-  return '$0.0' + String(z).split('').map(x => SUBS[x]).join('') + d;
+  return '0.0' + String(z).split('').map(x => SUBS[x]).join('') + d;
+}
+const fmtPrice = p => '$' + compact(p, 4);
+function fmtExact(p, sym) {           // full precision, rounded to the pair's tick size
+  const dec = S.dec.has(sym) ? S.dec.get(sym) : 8;
+  return '$' + p.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 function fmtVol(v) {
   const [d, u] = v >= 1e9 ? [1e9, 'B'] : v >= 1e6 ? [1e6, 'M'] : v >= 1e3 ? [1e3, 'K'] : [1, ''];
   const x = v / d;
   return (x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2)) + u;
 }
+const fmtPct = p => (p >= 0 ? '+' : '−') + Math.abs(p).toFixed(2) + '%';
+function fmtDur(ms) {
+  const m = Math.max(0, Math.round(ms / 60000));
+  if (m < 1) return 'under 1 min';
+  if (m < 60) return m + ' min';
+  const h = Math.floor(m / 60);
+  return h < 24 ? `${h}h ${m % 60}m` : `${Math.floor(h / 24)}d ${h % 24}h`;
+}
+function fmtWhen(ms, iv, short) {
+  const d = new Date(ms);
+  const date = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  if (iv === '1d') return date;
+  if (iv === '4h' || iv === '1h') return short ? date : `${date}, ${time}`;
+  return short ? time : `${date}, ${time}`;
+}
 
+// ---------- Token list ----------
 function cell(s, iv) {
-  if (!s) return '<div class="c na">–</div>';
+  if (!s) return `<div class="c na" data-iv="${iv}">–</div>`;
   const p = s.pct, abs = Math.abs(p), a = Math.min(abs / SCALE[iv], 1);
   const rgb = p >= 0 ? '52,209,166' : '255,110,122';
   const color = a > 0.55 ? '#fff' : p >= 0 ? 'var(--up)' : 'var(--down)';
   const num = abs >= 100 ? abs.toFixed(0) : abs >= 10 ? abs.toFixed(1) : abs.toFixed(2);
   const badge = s.sup ? `<small>×${s.b}</small>` : '';
-  return `<div class="c ${s.sup}" style="background:rgba(${rgb},${(0.07 + a * 0.55).toFixed(3)});color:${color}">`
+  return `<div class="c ${s.sup}" data-iv="${iv}" style="background:rgba(${rgb},${(0.07 + a * 0.55).toFixed(3)});color:${color}">`
     + `${p >= 0 ? '+' : '−'}${num}%${badge}</div>`;
 }
 
@@ -525,7 +658,7 @@ function render() {
   let rows = list.map(sym => {
     const t = S.tick.get(sym), st = {};
     for (const iv of ivs) st[iv] = state(sym, iv);
-    return { base: S.pairs.get(sym), price: t.price, vol: t.vol, st };
+    return { sym, base: S.pairs.get(sym), price: t.price, vol: t.vol, st };
   });
   const q = S.q.trim().toUpperCase();
   if (q) rows = rows.filter(r => r.base.includes(q));
@@ -551,11 +684,12 @@ function render() {
   else if (list.length && S.filter === 'test') empty = `No token is sitting on ${line} support with ${min}+ bounces right now.`;
   else if (list.length && S.filter === 'brk') empty = `No ${line} support with ${min}+ bounces is breaking right now.`;
   $('list').innerHTML = rows.length
-    ? rows.map(r => `<a class="row" href="https://www.binance.com/en/trade/${r.base}_${QUOTE}?type=spot" target="_blank" rel="noopener">`
+    ? rows.map(r => `<div class="row" role="button" tabindex="0" data-sym="${r.sym}" aria-label="${esc(r.base)} chart">`
         + `<div class="tok"><b>${esc(r.base)}</b><span>${fmtPrice(r.price)}</span><span>Vol ${fmtVol(r.vol)}</span></div>`
-        + ivs.map(iv => cell(r.st[iv], iv)).join('') + '</a>').join('')
+        + ivs.map(iv => cell(r.st[iv], iv)).join('') + '</div>').join('')
     : `<div class="empty">${empty}</div>`;
   renderHeader(); renderStatus();
+  if (S.detail) renderDetail();
 }
 
 let headKey = '';
@@ -622,6 +756,166 @@ function renderSettings() {
     + `<button data-st="0" aria-pressed="${!S.hideStable}">Show</button>`;
 }
 
+// ---------- Token chart view ----------
+function openDetail(sym, iv) {
+  S.detail = { sym, iv };
+  $('dBinance').href = `https://www.binance.com/en/trade/${S.pairs.get(sym)}_${QUOTE}?type=spot`;
+  $('detail').classList.add('open');
+  $('detail').scrollTop = 0;
+  document.body.classList.add('lock');
+  renderDetail();
+  refreshDetail();
+}
+function closeDetail() {
+  S.detail = null;
+  $('detail').classList.remove('open');
+  document.body.classList.remove('lock');
+}
+// Download (or update) all timeframes for the open token, the one on screen first
+function refreshDetail() {
+  const d = S.detail;
+  if (!d) return;
+  const sym = d.sym;
+  for (const iv of [d.iv, ...ALL_IVS.filter(x => x !== d.iv)]) {
+    loadChartOnce(sym, iv)
+      .catch(() => markFailed(sym + '|' + iv))
+      .finally(() => { if (S.detail && S.detail.sym === sym) requestDetail(); });
+  }
+}
+let detailTimer = null;
+function requestDetail() { if (!detailTimer) detailTimer = setTimeout(() => { detailTimer = null; renderDetail(); }, 150); }
+
+function renderDetail() {
+  const d = S.detail;
+  if (!d) return;
+  const { sym, iv } = d, t = S.tick.get(sym), ch = S.charts.get(sym + '|' + iv);
+  $('dSym').innerHTML = `${esc(S.pairs.get(sym))}<span>/${QUOTE}</span>`;
+  if (t) {
+    const chg = t.open > 0 ? (t.price - t.open) / t.open * 100 : 0;
+    $('dPrice').innerHTML = `${fmtExact(t.price, sym)}<small class="${chg >= 0 ? 'up' : 'dn'}">${fmtPct(chg)} 24h</small>`;
+  }
+  $('dTfs').innerHTML = ALL_IVS.map(x => `<button role="tab" data-iv="${x}" aria-selected="${x === iv}">${LABEL[x]}</button>`).join('');
+  for (const b of $('dLegend').querySelectorAll('button')) b.setAttribute('aria-pressed', String(S.show[b.dataset.show]));
+  $('chart').innerHTML = t && ch && ch.c ? drawChart(ch, t.price, iv) : '<div class="cmsg">Loading chart…</div>';
+  $('dFacts').innerHTML = t && ch && ch.c ? facts(ch, t.price, sym, iv) : '';
+  // every timeframe at a glance
+  let rows = '<tr><th>Timeframe</th><th>Trendline</th><th>EMA 25</th></tr>';
+  for (const x of ALL_IVS) {
+    const c = S.charts.get(sym + '|' + x);
+    const tl = t && lineInfo(c, t.price, 'tl'), em = t && lineInfo(c, t.price, 'ema');
+    const val = (r, word) => r ? `${fmtExact(r.ref, sym)}<small>${fmtPct(r.pct)}, ×${r.b} ${word}</small>`
+      : `–<small>${c && c.c ? 'none' : 'loading'}</small>`;
+    rows += `<tr data-iv="${x}" class="${x === iv ? 'on' : ''}"><td>${LABEL[x]}</td><td>${val(tl, 'touches')}</td><td>${val(em, 'bounces')}</td></tr>`;
+  }
+  $('dTable').innerHTML = rows;
+}
+
+function statusWord(r, kind, ch) {
+  const min = S.minB[kind];
+  if (kind === 'ema' && !ch.rising) return 'EMA not rising';
+  if (r.b < min) return `needs ×${min}`;
+  return { hold: 'holding', test: 'testing now', brk: 'breaking' }[r.sup] || 'holding';
+}
+
+function facts(ch, price, sym, iv) {
+  const n = ch.c.length, out = [];
+  const row = (k, v, cls = '') => out.push(`<dt>${k}</dt><dd class="${cls}">${v}</dd>`);
+  const tl = lineInfo(ch, price, 'tl');
+  if (tl) {
+    const at = i => ch.tl.ya + ch.tl.s * (i - ch.tl.a);
+    const toNext = ch.lastOpen + 2 * IV_MS[iv] - serverNow();
+    row('Trendline now', fmtExact(tl.ref, sym), 'big');
+    row('Price vs trendline', `${fmtPct(tl.pct)} ${tl.pct >= 0 ? 'above' : 'below'}`);
+    row(`Next candle (in ${fmtDur(toNext)})`, fmtExact(at(n + 1), sym));
+    row('Touches', `×${tl.b}, ${statusWord(tl, 'tl', ch)}`);
+    row('Line rises', `${fmtPct(ch.tl.s / tl.ref * 100)} per candle`);
+    row('First touch', fmtWhen(ch.lastOpen - (n - 1 - ch.tl.a) * IV_MS[iv], iv));
+  } else {
+    out.push(`<div class="none">No rising trendline on ${LABEL[iv]} right now. Price may be in a downtrend, or it has closed below every recent line.</div>`);
+  }
+  const em = lineInfo(ch, price, 'ema');
+  if (em) {
+    out.push('<div class="sep"></div>');
+    row('EMA 25 now', fmtExact(em.ref, sym), 'big ema');
+    row('Price vs EMA 25', `${fmtPct(em.pct)} ${em.pct >= 0 ? 'above' : 'below'}`);
+    row('Bounces', `×${em.b}, ${statusWord(em, 'ema', ch)}`);
+  }
+  return out.join('');
+}
+
+function niceStep(range, count) {       // 1, 2 or 5 times a power of ten
+  const raw = range / count, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
+  return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag;
+}
+
+function drawChart(ch, price, iv) {
+  const W = Math.max(280, Math.round($('chart').clientWidth || 350)), H = 290;
+  const R = 64, T = 8, B = 22, PW = W - R;                // right gutter for price tags
+  const n = ch.c.length, tl = ch.tl, showTl = S.show.tl && tl, showEma = S.show.ema && ch.ema != null;
+  const f = ch.forming ? { ...ch.forming } : { o: ch.c[n - 1], h: ch.c[n - 1], l: ch.c[n - 1] };
+  f.c = price; f.h = Math.max(f.h, price); f.l = Math.min(f.l, price);
+  const slots = n + 4, dx = PW / slots, X = i => (i + 0.5) * dx;  // closed candles, live candle, room ahead
+  const at = i => tl.ya + tl.s * (i - tl.a);
+  const emaLive = ch.ema != null ? ch.ema + K * (price - ch.ema) : null;
+
+  let lo = Math.min(f.l, ...ch.l), hi = Math.max(f.h, ...ch.h);
+  if (showEma) for (const v of ch.e) if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  if (showTl) { lo = Math.min(lo, at(tl.a)); hi = Math.max(hi, at(n + 1)); }
+  const pad = (hi - lo) * 0.06 || hi * 0.01;
+  lo -= pad; hi += pad;
+  const Y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+  const r1 = v => v.toFixed(1);
+  let g = '';
+
+  const step = niceStep(hi - lo, 5), dec = Math.max(0, -Math.floor(Math.log10(step) + 1e-9));
+  for (let k = Math.ceil(lo / step); k * step < hi; k++) {   // grid and price axis at round numbers
+    const v = k * step, y = r1(Y(v));
+    const label = v < 0.0001 ? compact(v, 4) : v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    g += `<line class="g-grid" x1="0" x2="${PW}" y1="${y}" y2="${y}"/><text class="g-ax" x="${PW + 5}" y="${+y + 3}">${label}</text>`;
+  }
+  for (let k = 0; k < 3; k++) {                           // time axis
+    const i = Math.round((n - 1) * (k + 0.5) / 3);
+    g += `<text class="g-ax" x="${r1(X(i))}" y="${H - 6}" text-anchor="middle">${fmtWhen(ch.lastOpen - (n - 1 - i) * IV_MS[iv], iv, true)}</text>`;
+  }
+  const bw = Math.max(1, dx * 0.64);
+  for (let i = 0; i <= n; i++) {                          // candles
+    const [o, h, l, c] = i < n ? [ch.o[i], ch.h[i], ch.l[i], ch.c[i]] : [f.o, f.h, f.l, f.c];
+    const cls = (c >= o ? 'cu' : 'cd') + (i === n ? ' g-live' : ''), x = X(i);
+    const top = Y(Math.max(o, c)), bot = Y(Math.min(o, c));
+    g += `<line class="${cls}" x1="${r1(x)}" x2="${r1(x)}" y1="${r1(Y(h))}" y2="${r1(Y(l))}" stroke-width="1"/>`
+      + `<rect class="${cls}" x="${r1(x - bw / 2)}" y="${r1(top)}" width="${r1(bw)}" height="${r1(Math.max(1, bot - top))}"/>`;
+  }
+  if (showEma) {
+    const pts = [];
+    ch.e.forEach((v, i) => { if (v != null) pts.push(`${r1(X(i))},${r1(Y(v))}`); });
+    pts.push(`${r1(X(n))},${r1(Y(emaLive))}`);
+    g += `<polyline class="g-ema" points="${pts.join(' ')}"/>`;
+  }
+  if (showTl) {
+    const end = slots - 0.5;
+    g += `<line class="g-tl" x1="${r1(X(tl.a))}" y1="${r1(Y(at(tl.a)))}" x2="${r1(X(n))}" y2="${r1(Y(at(n)))}"/>`
+      + `<line class="g-tl g-proj" x1="${r1(X(n))}" y1="${r1(Y(at(n)))}" x2="${r1(X(end))}" y2="${r1(Y(at(end)))}"/>`;
+    for (const i of touchPoints(ch)) g += `<circle class="g-touch" cx="${r1(X(i))}" cy="${r1(Y(at(i)))}" r="3.2"/>`;
+  }
+  const up = price >= f.o;
+  g += `<line class="g-pl ${up ? 'cu' : 'cd'}" x1="0" x2="${PW}" y1="${r1(Y(price))}" y2="${r1(Y(price))}"/>`;
+
+  // price tags on the right, nudged apart so they never overlap
+  const tags = [{ v: price, cls: up ? 't-up' : 't-dn' }];
+  if (showTl) tags.push({ v: at(n), cls: 't-tl' });
+  if (showEma) tags.push({ v: emaLive, cls: 't-ema' });
+  tags.forEach(tg => { tg.y = Y(tg.v); });
+  tags.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < tags.length; i++) tags[i].y = Math.max(tags[i].y, tags[i - 1].y + 17);
+  const over = tags.length ? tags[tags.length - 1].y - (H - B - 8) : 0;
+  if (over > 0) tags.forEach(tg => { tg.y -= over; });
+  for (const tg of tags) {
+    g += `<rect class="${tg.cls}" x="${PW + 2}" y="${r1(tg.y - 8)}" width="${R - 3}" height="16" rx="3"/>`
+      + `<text class="g-tagt" x="${PW + 5}" y="${r1(tg.y + 3.5)}">${compact(tg.v, 6)}</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${LABEL[iv]} candle chart">${g}</svg>`;
+}
+
 // ---------- Events ----------
 function settingsChanged() { savePrefs(); layout(); renderSettings(); schedule(); render(); }
 
@@ -664,16 +958,44 @@ $('cols').addEventListener('click', e => {
 });
 $('q').addEventListener('input', e => { S.q = e.target.value; render(); });
 
+// tap a token (or one of its cells) to open its chart on that timeframe
+function rowTap(e) {
+  const row = e.target.closest('.row'); if (!row) return;
+  const c = e.target.closest('[data-iv]');
+  openDetail(row.dataset.sym, c ? c.dataset.iv : (S.sort.iv || S.ivs[0]));
+}
+$('list').addEventListener('click', rowTap);
+$('list').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); rowTap(e); } });
+
+$('back').addEventListener('click', closeDetail);
+$('dTfs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || !S.detail) return;
+  S.detail.iv = b.dataset.iv; renderDetail(); refreshDetail();
+});
+$('dTable').addEventListener('click', e => {
+  const tr = e.target.closest('tr[data-iv]'); if (!tr || !S.detail) return;
+  S.detail.iv = tr.dataset.iv; renderDetail(); $('detail').scrollTo({ top: 0, behavior: 'smooth' });
+});
+$('dLegend').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  S.show[b.dataset.show] = !S.show[b.dataset.show]; savePrefs(); renderDetail();
+});
+let resizeTimer = null;
+window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderDetail, 150); });
+
 function openSheet(open) {
   if (open) renderSettings();
   $('sheet').classList.toggle('open', open);
   $('scrim').classList.toggle('open', open);
-  document.body.classList.toggle('lock', open);
+  document.body.classList.toggle('lock', open || !!S.detail);
 }
 $('openSettings').addEventListener('click', () => openSheet(true));
 $('done').addEventListener('click', () => openSheet(false));
 $('scrim').addEventListener('click', () => openSheet(false));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') openSheet(false); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if ($('sheet').classList.contains('open')) openSheet(false); else if (S.detail) closeDetail();
+});
 
 // ---------- Refresh loop ----------
 async function cycle() {
@@ -682,6 +1004,7 @@ async function cycle() {
   try { await refreshTickers(); S.lastUpdate = Date.now(); S.tickErr = ''; }
   catch (e) { S.tickErr = e.message; }
   schedule(); render();
+  refreshDetail();
 }
 let loopTimer = null;
 async function loop() {
