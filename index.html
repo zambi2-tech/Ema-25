@@ -28,8 +28,9 @@ button{font-family:inherit;cursor:pointer}
 header{position:sticky;top:0;z-index:5;background:var(--ink);
   padding:calc(env(safe-area-inset-top) + 10px) 12px 0;border-bottom:1px solid var(--line)}
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
-.mode{display:flex;gap:16px}
-.mode button{background:none;border:0;padding:0 0 4px;font-size:20px;font-weight:700;letter-spacing:-.015em;
+.mode{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none;min-width:0}
+.mode::-webkit-scrollbar{display:none}
+.mode button{background:none;border:0;padding:0 0 4px;font-size:18px;font-weight:700;letter-spacing:-.015em;flex:none;
   color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
 .mode button[aria-selected=true]{color:var(--text);border-bottom-color:var(--gold)}
 .count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;padding-bottom:7px}
@@ -84,7 +85,7 @@ main{padding:4px 12px 16px}
 .c.na{color:var(--line)}
 .c.hold::after,.c.test::after{content:"";position:absolute;left:3px;right:3px;bottom:2px;height:3px;
   border-radius:2px;background:var(--gold)}
-.c.test,.c.rtest{box-shadow:inset 0 0 0 1.5px var(--gold)}
+.c.test,.c.rtest,.c.hot{box-shadow:inset 0 0 0 1.5px var(--gold)}
 .c.brk::after{content:"";position:absolute;left:3px;right:3px;bottom:2px;border-bottom:2px dashed var(--down)}
 .empty{color:var(--muted);text-align:center;padding:40px 12px;font-size:14px;line-height:1.5}
 footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;max-width:70ch}
@@ -180,8 +181,9 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
       <button role="tab" data-m="ema" aria-selected="true">EMA 25</button>
       <button role="tab" data-m="tl" aria-selected="false">Trendline</button>
       <button role="tab" data-m="rr" aria-selected="false">R:R</button>
+      <button role="tab" data-m="pump" aria-selected="false">Pump</button>
+      <button role="tab" data-m="adx" aria-selected="false">ADX</button>
     </div>
-    <span class="count" id="count"></span>
   </div>
   <div class="srow">
     <div class="status" id="status">Connecting to Binance…</div>
@@ -205,9 +207,9 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 <main id="list"><div class="empty">Loading pairs…</div></main>
 <footer>
   EMA 25 and Trendline show how far the live price is from that line on each timeframe; green is above and red
-  is below. R:R rates a buy at today's price by reward to risk, based on how hard the token bounced off its
-  supports before. Tap a column to sort by it, and tap again to flip. Tap a token, or one of its cells, to see its
-  chart. Not financial advice.
+  is below. R:R rates a buy at today's price by reward to risk. Pump ranks what is rising fastest right now, and
+  ADX ranks the strongest trends. Tap a column to sort by it, and tap again to flip. Tap a token, or one of its
+  cells, to see its chart. Not financial advice.
 </footer>
 
 <div class="scrim" id="scrim"></div>
@@ -251,6 +253,17 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
     risen past the typical bounce.</p>
   <p>Setups where price is testing the support now score highest, because the stop is close. The chart for each
     token shows the stop and target lines. Past bounces don't guarantee future ones.</p>
+  <h3>Pump tab</h3>
+  <p>Each cell shows how much the price has moved over the last 3 candles of that timeframe: the candle forming now
+    and the two before it. On 15m that is roughly the last 45 minutes, and on 1H roughly the last 3 hours. "vol ×3.2"
+    means the last closed candle traded 3.2 times its usual volume (the median of the 20 candles before it). A gold
+    box marks a rise backed by at least twice the usual volume. Tokens are ranked on the timeframe you sort by, from
+    the fastest rise down, and the filters use that timeframe too.</p>
+  <h3>ADX tab</h3>
+  <p>ADX (14) measures how strong a trend is: below 20 is weak, above 25 is a strong trend and above 40 is very strong.
+    Green means an uptrend (+DI above −DI) and red means a downtrend. "Rising" means ADX went up on the last closed
+    candle, so the trend is gaining strength. Uptrend shows only uptrends, and Rising ADX shows only uptrends whose
+    ADX is rising, marked with a gold box. ADX uses closed candles, and the filters use the timeframe you sort by.</p>
   <button class="done" id="done">Done</button>
 </section>
 
@@ -272,7 +285,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
   </div>
   <dl class="facts" id="dFacts"></dl>
   <h3 class="dsec">All timeframes</h3>
-  <p class="dnote">Current trendline and EMA 25 price, and the R:R of buying now, on each timeframe. Tap a row to chart it.</p>
+  <p class="dnote">Current trendline and EMA 25 price, the R:R of buying now, and ADX on each timeframe. Tap a row to chart it.</p>
   <table class="tft" id="dTable"></table>
 </section>
 
@@ -307,6 +320,9 @@ const RR = {
 const MIN_OPTIONS = { ema: [1, 2, 3, 4, 5, 6], tl: [2, 3, 4, 5, 6] };
 const MIN_DEFAULT = { ema: 2, tl: 3 };
 const RR_MIN_OPTIONS = [0, 1, 1.5, 2, 3, 5];
+const PUMP_MIN_OPTIONS = [0, 1, 2, 3, 5, 10];      // minimum rise in %
+const ADX_MIN_OPTIONS = [0, 20, 25, 30, 40, 50];   // minimum ADX
+const ADX_N = 14;
 // ----------------------------------------------
 
 const K = 2 / (PERIOD + 1);
@@ -328,6 +344,8 @@ const S = {
   auto: true, mode: 'ema', minB: { ...MIN_DEFAULT }, minRR: 0,
   ivs: ALL_IVS.slice(), top: 0, hideStable: true, filter: 'all', rrFilter: 'all',
   sort: { by: 'vol', iv: '', dir: -1 }, rrSort: { iv: 'best', dir: -1 }, q: '',
+  pumpSort: { by: 'val', iv: '', dir: -1 }, adxSort: { by: 'val', iv: '', dir: -1 },
+  pumpFilter: 'all', adxFilter: 'up', minPump: 0, minAdx: 0,
   detail: null, show: { tl: true, ema: true, rr: true },
   lastUpdate: 0, nextAt: 0, tickErr: '', busy: false
 };
@@ -339,7 +357,14 @@ try {
   if (Array.isArray(p.ivs)) { const v = ALL_IVS.filter(iv => p.ivs.includes(iv)); if (v.length) S.ivs = v; }
   if (['all', 'sup', 'test', 'brk'].includes(p.filter)) S.filter = p.filter;
   if (['all', 'rtest', 'rboth'].includes(p.rrFilter)) S.rrFilter = p.rrFilter;
-  if (['ema', 'tl', 'rr'].includes(p.mode)) S.mode = p.mode;
+  if (['ema', 'tl', 'rr', 'pump', 'adx'].includes(p.mode)) S.mode = p.mode;
+  for (const k of ['pumpSort', 'adxSort'])
+    if (p[k] && ['val', 'rvol', 'vol'].includes(p[k].by) && ALL_IVS.includes(p[k].iv))
+      S[k] = { by: p[k].by, iv: p[k].iv, dir: p[k].dir === 1 ? 1 : -1 };
+  if (['all', 'up', 'vol'].includes(p.pumpFilter)) S.pumpFilter = p.pumpFilter;
+  if (['all', 'up', 'rise'].includes(p.adxFilter)) S.adxFilter = p.adxFilter;
+  if (PUMP_MIN_OPTIONS.includes(p.minPump)) S.minPump = p.minPump;
+  if (ADX_MIN_OPTIONS.includes(p.minAdx)) S.minAdx = p.minAdx;
   if (p.minB) for (const m of ['ema', 'tl']) if (MIN_OPTIONS[m].includes(p.minB[m])) S.minB[m] = p.minB[m];
   if (RR_MIN_OPTIONS.includes(p.minRR)) S.minRR = p.minRR;
   if (p.sort && ['vol', 'pct', 'b'].includes(p.sort.by) && (p.sort.by === 'vol' || ALL_IVS.includes(p.sort.iv)))
@@ -352,7 +377,8 @@ function savePrefs() {
   try {
     localStorage.setItem('ema25prefs', JSON.stringify({ auto: S.auto, top: S.top, hideStable: S.hideStable,
       ivs: S.ivs, filter: S.filter, rrFilter: S.rrFilter, mode: S.mode, minB: S.minB, minRR: S.minRR,
-      sort: S.sort, rrSort: S.rrSort, show: S.show }));
+      sort: S.sort, rrSort: S.rrSort, show: S.show, pumpSort: S.pumpSort, adxSort: S.adxSort,
+      pumpFilter: S.pumpFilter, adxFilter: S.adxFilter, minPump: S.minPump, minAdx: S.minAdx }));
   } catch (_) {}
 }
 
@@ -425,11 +451,11 @@ function universe() {
 // Each chart keeps its closed candles plus the EMA at every candle. After the first download,
 // only the newest few candles are fetched when a candle closes, which saves a lot of mobile data.
 function build(closed) {
-  const ch = { o: [], h: [], l: [], c: [], e: [], lastOpen: 0 };
+  const ch = { o: [], h: [], l: [], c: [], v: [], e: [], lastOpen: 0 };
   let sum = 0;
   closed.forEach((x, i) => {
     const c = +x[4];
-    ch.o.push(+x[1]); ch.h.push(+x[2]); ch.l.push(+x[3]); ch.c.push(c);
+    ch.o.push(+x[1]); ch.h.push(+x[2]); ch.l.push(+x[3]); ch.c.push(c); ch.v.push(+x[5]);
     if (i < PERIOD - 1) { sum += c; ch.e.push(null); }
     else if (i === PERIOD - 1) { sum += c; ch.e.push(sum / PERIOD); }
     else ch.e.push(c * K + ch.e[i - 1] * (1 - K));
@@ -440,11 +466,11 @@ function build(closed) {
 
 function append(ch, x) {
   const c = +x[4], prev = ch.e[ch.e.length - 1];
-  ch.o.push(+x[1]); ch.h.push(+x[2]); ch.l.push(+x[3]); ch.c.push(c);
+  ch.o.push(+x[1]); ch.h.push(+x[2]); ch.l.push(+x[3]); ch.c.push(c); ch.v.push(+x[5]);
   ch.e.push(c * K + prev * (1 - K));
   ch.lastOpen = +x[0];
   const extra = ch.c.length - KEEP;
-  if (extra > 0) for (const a of [ch.o, ch.h, ch.l, ch.c, ch.e]) a.splice(0, extra);
+  if (extra > 0) for (const a of [ch.o, ch.h, ch.l, ch.c, ch.v, ch.e]) a.splice(0, extra);
 }
 
 // Best rising trendline through two swing lows that no candle has closed below.
@@ -517,6 +543,7 @@ function derive(ch) {
     m++;
   }
   ch.atr = m ? tr / m : 0;
+  computeADX(ch);
   if (!(ch.atr > 0)) return;
   const tl = ch.tl = findTrendline(ch);
   if (tl) ch.tlH = history(ch, tl.a, i => tl.ya + tl.s * (i - tl.a));
@@ -629,6 +656,48 @@ function lineInfo(ch, price, kind) {
 
 const median = a => { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 
+// ADX (14) with +DI / -DI, Wilder's smoothing, on closed candles (same method as TradingView)
+function computeADX(ch) {
+  const n = ch.c.length, H = ch.h, L = ch.l, C = ch.c;
+  ch.adx = ch.adxPrev = ch.pdi = ch.mdi = null;
+  if (n < ADX_N * 2 + 2) return;
+  let str = 0, spdm = 0, smdm = 0, pdi = 0, mdi = 0, adx = null, prev = null, dxSum = 0, dxCount = 0;
+  for (let i = 1; i < n; i++) {
+    const up = H[i] - H[i - 1], dn = L[i - 1] - L[i];
+    const pdm = up > dn && up > 0 ? up : 0, mdm = dn > up && dn > 0 ? dn : 0;
+    const tr = Math.max(H[i] - L[i], Math.abs(H[i] - C[i - 1]), Math.abs(L[i] - C[i - 1]));
+    if (i <= ADX_N) {
+      str += tr; spdm += pdm; smdm += mdm;
+      if (i < ADX_N) continue;
+    } else {
+      str += tr - str / ADX_N; spdm += pdm - spdm / ADX_N; smdm += mdm - smdm / ADX_N;
+    }
+    pdi = str > 0 ? 100 * spdm / str : 0;
+    mdi = str > 0 ? 100 * smdm / str : 0;
+    const dx = pdi + mdi > 0 ? 100 * Math.abs(pdi - mdi) / (pdi + mdi) : 0;
+    if (adx == null) { dxSum += dx; if (++dxCount === ADX_N) adx = dxSum / ADX_N; }
+    else { prev = adx; adx = (adx * (ADX_N - 1) + dx) / ADX_N; }
+  }
+  ch.adx = adx; ch.adxPrev = prev; ch.pdi = pdi; ch.mdi = mdi;
+}
+function adxInfo(ch) {
+  if (!ch || !ch.c || ch.adx == null) return null;
+  return { adx: ch.adx, rising: ch.adxPrev != null && ch.adx > ch.adxPrev, up: ch.pdi > ch.mdi, pdi: ch.pdi, mdi: ch.mdi };
+}
+// Move over the last 3 candles (two closed + the one forming), and the last closed candle's volume vs usual
+function pumpInfo(ch, price) {
+  if (!ch || !ch.c) return null;
+  const n = ch.c.length;
+  if (n < 3 || !(ch.o[n - 2] > 0)) return null;
+  const pct = (price - ch.o[n - 2]) / ch.o[n - 2] * 100;
+  let rvol = null;
+  if (n >= 22) {
+    const usual = median(ch.v.slice(n - 21, n - 1));
+    if (usual > 0) rvol = ch.v[n - 1] / usual;
+  }
+  return { pct, rvol };
+}
+
 // Reward to risk of buying at the current price, from the nearest support's past bounces
 function setup(ch, price) {
   if (!ch || !ch.c || !(ch.atr > 0)) return null;
@@ -656,6 +725,8 @@ function state(sym, iv) {
   const t = S.tick.get(sym), ch = S.charts.get(sym + '|' + iv);
   if (!t) return null;
   if (S.mode === 'rr') { const su = setup(ch, t.price); return su ? { rr: su.rr, su } : null; }
+  if (S.mode === 'pump') return pumpInfo(ch, t.price);
+  if (S.mode === 'adx') return adxInfo(ch);
   return lineInfo(ch, t.price, S.mode);
 }
 
@@ -730,6 +801,45 @@ function layout() {
 let renderTimer = null;
 function requestRender() { if (!renderTimer) renderTimer = setTimeout(() => { renderTimer = null; render(); }, 500); }
 
+function cellPump(s, iv) {
+  if (!s) return `<div class="c na" data-iv="${iv}">–</div>`;
+  const p = s.pct, abs = Math.abs(p), a = Math.min(abs / SCALE[iv], 1);
+  const rgb = p >= 0 ? '52,209,166' : '255,110,122';
+  const color = a > 0.55 ? '#fff' : p >= 0 ? 'var(--up)' : 'var(--down)';
+  const num = abs >= 100 ? abs.toFixed(0) : abs >= 10 ? abs.toFixed(1) : abs.toFixed(2);
+  const vol = s.rvol != null && s.rvol >= 1.5 ? `<small>vol ×${s.rvol >= 10 ? s.rvol.toFixed(0) : s.rvol.toFixed(1)}</small>` : '';
+  return `<div class="c${p > 0 && s.rvol >= 2 ? ' hot' : ''}" data-iv="${iv}" style="background:rgba(${rgb},${(0.07 + a * 0.55).toFixed(3)});color:${color}">`
+    + `${p >= 0 ? '+' : '−'}${num}%${vol}</div>`;
+}
+function cellADX(s, iv) {
+  if (!s) return `<div class="c na" data-iv="${iv}">–</div>`;
+  const a = Math.min(Math.max((s.adx - 15) / 35, 0), 1);
+  const rgb = s.up ? '52,209,166' : '255,110,122';
+  const color = a > 0.55 ? '#fff' : s.up ? 'var(--up)' : 'var(--down)';
+  return `<div class="c${s.up && s.rising ? ' hot' : ''}" data-iv="${iv}" style="background:rgba(${rgb},${(0.07 + a * 0.55).toFixed(3)});color:${color}">`
+    + `${s.adx.toFixed(1)}<small>${s.rising ? 'rising' : 'falling'}</small></div>`;
+}
+// Pump and ADX tabs rank and filter on one timeframe: the one being sorted
+function momSort() { return S.mode === 'pump' ? S.pumpSort : S.adxSort; }
+function defaultMomIv(mode) {
+  const pref = mode === 'pump' ? '15m' : '4h';
+  return S.ivs.includes(pref) ? pref : mode === 'pump' ? S.ivs[S.ivs.length - 1] : S.ivs[0];
+}
+function fixMomSorts() {          // keep each tab's ranking timeframe among the selected ones
+  if (!S.ivs.includes(S.pumpSort.iv)) S.pumpSort = { by: 'val', iv: defaultMomIv('pump'), dir: -1 };
+  if (!S.ivs.includes(S.adxSort.iv)) S.adxSort = { by: 'val', iv: defaultMomIv('adx'), dir: -1 };
+}
+function momPass(s) {
+  if (S.mode === 'pump') {
+    const f = S.pumpFilter;
+    if (f === 'all' && !S.minPump) return true;
+    return !!s && (f !== 'up' || s.pct > 0) && (f !== 'vol' || (s.pct > 0 && s.rvol >= 2)) && (!S.minPump || s.pct >= S.minPump);
+  }
+  const f = S.adxFilter;
+  if (f === 'all' && !S.minAdx) return true;
+  return !!s && (f === 'all' || s.up) && (f !== 'rise' || s.rising) && (!S.minAdx || s.adx >= S.minAdx);
+}
+
 const bKey = s => s && s.sup ? s.b : -1;
 function rrPass(s) {
   if (!s || s.rr < S.minRR) return false;
@@ -737,8 +847,9 @@ function rrPass(s) {
 }
 
 function render() {
-  const list = universe(), ivs = S.ivs, rr = S.mode === 'rr';
+  const list = universe(), ivs = S.ivs, rr = S.mode === 'rr', mom = S.mode === 'pump' || S.mode === 'adx';
   if (S.sort.by !== 'vol' && !ivs.includes(S.sort.iv)) S.sort = { by: 'vol', iv: '', dir: -1 };
+  fixMomSorts();
   if (!['best', 'vol'].includes(S.rrSort.iv) && !ivs.includes(S.rrSort.iv)) S.rrSort = { iv: 'best', dir: -1 };
   let rows = list.map(sym => {
     const t = S.tick.get(sym), st = {};
@@ -751,7 +862,17 @@ function render() {
   });
   const q = S.q.trim().toUpperCase();
   if (q) rows = rows.filter(r => r.base.includes(q));
-  if (rr) {
+  if (mom) {
+    const so = momSort(), ref = so.iv, pump = S.mode === 'pump';
+    rows = rows.filter(r => momPass(r.st[ref]));
+    if (so.by !== 'vol') {
+      const val = r => { const s = r.st[ref]; return !s ? null : so.by === 'rvol' ? s.rvol : pump ? s.pct : s.adx; };
+      rows.sort((a, b) => {
+        const x = val(a), y = val(b);
+        return (x == null || y == null) ? (x == null) - (y == null) : so.dir * (x - y);
+      });
+    }
+  } else if (rr) {
     if (S.rrFilter !== 'all' || S.minRR > 0) rows = rows.filter(r => r.best != null);
     const rs = S.rrSort;
     if (rs.iv !== 'vol') {
@@ -777,9 +898,11 @@ function render() {
       rows.sort((a, b) => bKey(b.st[k]) - bKey(a.st[k]));   // ties keep volume order
     }
   }
-  $('count').textContent = !list.length ? '' : rows.length === list.length ? `${list.length} pairs` : `${rows.length} of ${list.length}`;
+  S.countText = !list.length ? '' : rows.length === list.length ? `${list.length} pairs` : `${rows.length} of ${list.length} pairs`;
   let empty = 'Waiting for data from Binance…';
   if (q) empty = `No ${QUOTE} pair matches “${esc(S.q.trim())}”.`;
+  else if (list.length && S.mode === 'pump') empty = `Nothing matches this filter on ${LABEL[S.pumpSort.iv]} right now.`;
+  else if (list.length && S.mode === 'adx') empty = `No trend matches this filter on ${LABEL[S.adxSort.iv]} right now.`;
   else if (list.length && rr) empty = S.rrFilter === 'rboth' ? 'No token is testing the EMA 25 and a trendline together right now.'
     : S.rrFilter === 'rtest' ? 'No token is testing a support right now.' : `No setup with R:R of ${S.minRR} or more right now.`;
   else if (list.length && S.filter !== 'all') {
@@ -788,7 +911,7 @@ function render() {
       : S.filter === 'test' ? `No token is sitting on ${line} support with ${min}+ bounces right now.`
       : `No ${line} support with ${min}+ bounces is breaking right now.`;
   }
-  const cellFn = rr ? cellRR : cell;
+  const cellFn = { rr: cellRR, pump: cellPump, adx: cellADX }[S.mode] || cell;
   $('list').innerHTML = rows.length
     ? rows.map(r => `<div class="row" role="button" tabindex="0" data-sym="${r.sym}" aria-label="${esc(r.base)} chart">`
         + `<div class="tok"><b>${esc(r.base)}</b><span>${fmtPrice(r.price)}</span><span>Vol ${fmtVol(r.vol)}</span></div>`
@@ -800,22 +923,37 @@ function render() {
 
 let headKey = '';
 function renderHeader() {
-  const rr = S.mode === 'rr', so = S.sort, rs = S.rrSort;
+  fixMomSorts();
+  const rr = S.mode === 'rr', mom = S.mode === 'pump' || S.mode === 'adx', so = S.sort, rs = S.rrSort, ms = momSort();
   const key = [S.ivs.join(), S.mode, so.by, so.iv, so.dir, rs.iv, rs.dir, S.filter, S.rrFilter,
-    S.minB.ema, S.minB.tl, S.minRR].join('|');
+    S.minB.ema, S.minB.tl, S.minRR, JSON.stringify(S.pumpSort), JSON.stringify(S.adxSort),
+    S.pumpFilter, S.adxFilter, S.minPump, S.minAdx].join('|');
   if (key === headKey) return;
   headKey = key;
   const arrow = d => d < 0 ? ' ↓' : ' ↑';
-  const on = iv => rr ? rs.iv === iv : (so.by !== 'vol' && so.iv === iv);
-  const mark = iv => !on(iv) ? '' : rr ? arrow(rs.dir) : so.by === 'b' ? ' ×' : arrow(so.dir);
-  const tokOn = rr ? rs.iv === 'vol' : so.by === 'vol';
+  const on = iv => mom ? ms.iv === iv : rr ? rs.iv === iv : (so.by !== 'vol' && so.iv === iv);
+  const mark = iv => !on(iv) ? '' : mom ? (ms.by === 'vol' ? '' : ms.by === 'rvol' ? ' ×' : arrow(ms.dir))
+    : rr ? arrow(rs.dir) : so.by === 'b' ? ' ×' : arrow(so.dir);
+  const tokOn = mom ? ms.by === 'vol' : rr ? rs.iv === 'vol' : so.by === 'vol';
   $('cols').innerHTML = `<button data-k="vol" class="${tokOn ? 'on' : ''}">Token${tokOn ? ' ↓' : ''}</button>`
     + S.ivs.map(iv => `<button data-k="${iv}" class="${on(iv) ? 'on' : ''}">${LABEL[iv]}${mark(iv)}</button>`).join('');
   for (const b of $('mode').querySelectorAll('button')) b.setAttribute('aria-selected', String(b.dataset.m === S.mode));
 
   // filter row and its picker depend on the tab
   const fb = (f, label, cur) => `<button data-f="${f}" aria-pressed="${f === cur}">${label}</button>`;
-  if (rr) {
+  const picker = (label, aria, options, cur, text) => `<label class="pick"><span>${label}</span><select id="minPick" aria-label="${aria}">`
+    + options.map(v => `<option value="${v}" ${v === cur ? 'selected' : ''}>${text(v)}</option>`).join('') + '</select></label>';
+  if (S.mode === 'pump') {
+    $('filter').innerHTML = fb('all', 'All', S.pumpFilter) + fb('up', 'Rising', S.pumpFilter)
+      + fb('vol', '<i class="sw box"></i>With volume', S.pumpFilter)
+      + picker(S.minPump ? `≥ +${S.minPump}%` : 'Any rise', 'Minimum rise', PUMP_MIN_OPTIONS, S.minPump,
+        v => v ? `Rise of ${v}% or more` : 'Any move');
+  } else if (S.mode === 'adx') {
+    $('filter').innerHTML = fb('up', 'Uptrend', S.adxFilter) + fb('rise', '<i class="sw box"></i>Rising ADX', S.adxFilter)
+      + fb('all', 'All', S.adxFilter)
+      + picker(S.minAdx ? `ADX ≥${S.minAdx}` : 'ADX any', 'Minimum ADX', ADX_MIN_OPTIONS, S.minAdx,
+        v => v ? `ADX of ${v} or more` : 'Any ADX');
+  } else if (rr) {
     $('filter').innerHTML = fb('all', 'All', S.rrFilter) + fb('rtest', '<i class="sw box"></i>Testing', S.rrFilter)
       + fb('rboth', '<i class="sw box"></i>Testing both', S.rrFilter)
       + `<label class="pick"><span>${S.minRR ? `R:R ≥${S.minRR}` : 'R:R any'}</span><select id="minPick" aria-label="Minimum reward to risk">`
@@ -831,7 +969,17 @@ function renderHeader() {
   }
 
   const group = (label, fn) => `<optgroup label="${label}">${S.ivs.map(iv => `<option value="${fn(iv)}">${LABEL[iv]}</option>`).join('')}</optgroup>`;
-  if (rr) {
+  if (mom) {
+    const pump = S.mode === 'pump';
+    $('sort').innerHTML = (pump
+      ? group('Fastest rise first', iv => `val:${iv}:-1`) + group('Biggest drop first', iv => `val:${iv}:1`)
+        + group('Biggest volume spike first', iv => `rvol:${iv}:-1`)
+      : group('Highest ADX first', iv => `val:${iv}:-1`) + group('Lowest ADX first', iv => `val:${iv}:1`))
+      + `<option value="vol:${ms.iv}:-1">24h volume</option>`;
+    $('sort').value = ms.by === 'vol' ? `vol:${ms.iv}:-1` : `${ms.by}:${ms.iv}:${ms.by === 'rvol' ? -1 : ms.dir}`;
+    $('sortLabel').textContent = ms.by === 'vol' ? 'Volume' : ms.by === 'rvol' ? `Vol spike ${LABEL[ms.iv]}`
+      : pump ? `${LABEL[ms.iv]} %${arrow(ms.dir)}` : `ADX ${LABEL[ms.iv]}${arrow(ms.dir)}`;
+  } else if (rr) {
     $('sort').innerHTML = '<option value="best:-1">Best R:R, highest first</option><option value="best:1">Best R:R, lowest first</option>'
       + group('Highest R:R first', iv => `${iv}:-1`) + group('Lowest R:R first', iv => `${iv}:1`)
       + '<option value="vol:-1">24h volume</option>';
@@ -846,7 +994,7 @@ function renderHeader() {
     $('sortLabel').textContent = so.by === 'vol' ? 'Volume' : so.by === 'b' ? `Bounces ${LABEL[so.iv]}`
       : `${LABEL[so.iv]} %${arrow(so.dir)}`;
   }
-  document.title = { ema: 'EMA 25 distance', tl: 'Trendline distance', rr: 'Reward to risk' }[S.mode];
+  document.title = { ema: 'EMA 25 distance', tl: 'Trendline distance', rr: 'Reward to risk', pump: 'Pumping now', adx: 'Trend strength (ADX)' }[S.mode];
 }
 
 function coverage() {
@@ -875,7 +1023,8 @@ function renderStatus() {
     el.className = 'status';
     const t = new Date(S.lastUpdate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const extra = loading ? `, charts ${have}/${total}` : working ? ', updating charts' : '';
-    el.textContent = S.auto ? `Updated ${t}, next in ${next}s${extra}` : `Updated ${t}${extra || ', manual updates'}`;
+    const count = S.countText ? `${S.countText}, ` : '';
+    el.textContent = S.auto ? `${count}updated ${t}, next in ${next}s${extra}` : `${count}updated ${t}${extra || ', manual updates'}`;
   }
 }
 
@@ -935,14 +1084,16 @@ function renderDetail() {
   const ready = t && ch && ch.c;
   $('chart').innerHTML = ready ? drawChart(ch, t.price, iv) : '<div class="cmsg">Loading chart…</div>';
   $('dFacts').innerHTML = ready ? facts(ch, t.price, sym, iv) : '';
-  let rows = '<tr><th>Timeframe</th><th>Trendline</th><th>EMA 25</th><th>R:R</th></tr>';
+  let rows = '<tr><th>TF</th><th>Trendline</th><th>EMA 25</th><th>R:R</th><th>ADX</th></tr>';
   for (const x of ALL_IVS) {
     const c = S.charts.get(sym + '|' + x);
     const tl = t && lineInfo(c, t.price, 'tl'), em = t && lineInfo(c, t.price, 'ema'), su = t && setup(c, t.price);
     const val = (r, word) => r ? `${fmtExact(r.ref, sym)}<small>${fmtPct(r.pct)}, ×${r.b} ${word}</small>`
       : `–<small>${c && c.c ? 'none' : 'loading'}</small>`;
     const rr = su ? `${fmtRR(su.rr)}<small>${zoneName(su)}</small>` : '–<small>&nbsp;</small>';
-    rows += `<tr data-iv="${x}" class="${x === iv ? 'on' : ''}"><td>${LABEL[x]}</td><td>${val(tl, 'touches')}</td><td>${val(em, 'bounces')}</td><td>${rr}</td></tr>`;
+    const ax = adxInfo(c);
+    const adx = ax ? `<span class="${ax.up ? 'up' : 'dn'}">${ax.adx.toFixed(0)}</span><small>${ax.rising ? 'rising' : 'falling'}</small>` : '–<small>&nbsp;</small>';
+    rows += `<tr data-iv="${x}" class="${x === iv ? 'on' : ''}"><td>${LABEL[x]}</td><td>${val(tl, 'touches')}</td><td>${val(em, 'bounces')}</td><td>${rr}</td><td>${adx}</td></tr>`;
   }
   $('dTable').innerHTML = rows;
 }
@@ -955,7 +1106,7 @@ function statusWord(r, kind, ch) {
 }
 
 function facts(ch, price, sym, iv) {
-  const n = ch.c.length, lineRows = [], setupRows = [];
+  const n = ch.c.length, lineRows = [], setupRows = [], momRows = [];
   const row = (arr, k, v, cls = '') => arr.push(`<dt>${k}</dt><dd class="${cls}">${v}</dd>`);
   const tl = lineInfo(ch, price, 'tl');
   if (tl) {
@@ -994,8 +1145,18 @@ function facts(ch, price, sym, iv) {
     if (!(su.rr > 0)) setupRows.push('<div class="none">Price is already above where past bounces usually peaked, so there is no reward left in this setup.</div>');
     else if (su.testing) setupRows.push('<div class="none">Price is testing this support right now.</div>');
   }
+  // momentum
+  momRows.push(`<div class="hd">Momentum on ${LABEL[iv]}</div>`);
+  const pu = pumpInfo(ch, price), ax = adxInfo(ch);
+  row(momRows, 'Last 3 candles', pu ? `${fmtPct(pu.pct)}${pu.rvol != null ? `, volume ×${pu.rvol.toFixed(1)}` : ''}` : '–');
+  if (ax) {
+    row(momRows, 'ADX (14)', `${ax.adx.toFixed(1)}, ${ax.rising ? 'rising' : 'falling'}`);
+    row(momRows, 'Trend', `${ax.up ? 'Up' : 'Down'} (+DI ${ax.pdi.toFixed(1)}, −DI ${ax.mdi.toFixed(1)})`);
+  } else row(momRows, 'ADX (14)', 'not enough candles yet');
   const sep = '<div class="sep"></div>';
-  return S.mode === 'rr' ? setupRows.join('') + sep + lineRows.join('') : lineRows.join('') + sep + setupRows.join('');
+  const order = S.mode === 'rr' ? [setupRows, lineRows, momRows]
+    : S.mode === 'pump' || S.mode === 'adx' ? [momRows, lineRows, setupRows] : [lineRows, setupRows, momRows];
+  return order.map(r => r.join('')).join(sep);
 }
 
 function niceStep(range, count) {       // 1, 2 or 5 times a power of ten
@@ -1109,24 +1270,36 @@ $('mode').addEventListener('click', e => {
 });
 $('filter').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  if (S.mode === 'rr') S.rrFilter = b.dataset.f; else S.filter = b.dataset.f;
+  if (S.mode === 'rr') S.rrFilter = b.dataset.f;
+  else if (S.mode === 'pump') S.pumpFilter = b.dataset.f;
+  else if (S.mode === 'adx') S.adxFilter = b.dataset.f;
+  else S.filter = b.dataset.f;
   savePrefs(); render();
 });
 $('filter').addEventListener('change', e => {
   if (e.target.id !== 'minPick') return;
-  if (S.mode === 'rr') S.minRR = +e.target.value; else S.minB[S.mode] = +e.target.value;
+  if (S.mode === 'rr') S.minRR = +e.target.value;
+  else if (S.mode === 'pump') S.minPump = +e.target.value;
+  else if (S.mode === 'adx') S.minAdx = +e.target.value;
+  else S.minB[S.mode] = +e.target.value;
   savePrefs(); render();
 });
 $('sort').addEventListener('change', e => {
   const v = e.target.value.split(':');
   if (S.mode === 'rr') S.rrSort = { iv: v[0], dir: v[0] === 'vol' ? -1 : +v[1] };
+  else if (S.mode === 'pump' || S.mode === 'adx') S[S.mode === 'pump' ? 'pumpSort' : 'adxSort'] = { by: v[0], iv: v[1], dir: +v[2] };
   else S.sort = v[0] === 'vol' ? { by: 'vol', iv: '', dir: -1 } : { by: v[0], iv: v[1], dir: v[0] === 'pct' ? +v[2] : -1 };
   savePrefs(); render(); window.scrollTo({ top: 0 });
 });
 $('cols').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const k = b.dataset.k;
-  if (S.mode === 'rr') {
+  if (S.mode === 'pump' || S.mode === 'adx') {
+    const key = S.mode === 'pump' ? 'pumpSort' : 'adxSort', so = S[key];
+    if (k === 'vol') S[key] = so.by === 'vol' ? { by: 'val', iv: so.iv, dir: -1 } : { by: 'vol', iv: so.iv, dir: -1 };
+    else if (so.iv === k && so.by === 'val') so.dir *= -1;
+    else S[key] = { by: 'val', iv: k, dir: -1 };
+  } else if (S.mode === 'rr') {
     if (k === 'vol') S.rrSort = S.rrSort.iv === 'vol' ? { iv: 'best', dir: -1 } : { iv: 'vol', dir: -1 };
     else if (S.rrSort.iv === k) S.rrSort.dir *= -1;
     else S.rrSort = { iv: k, dir: -1 };
@@ -1144,7 +1317,8 @@ $('refresh').addEventListener('click', () => loop());
 function rowTap(e) {
   const row = e.target.closest('.row'); if (!row) return;
   const c = e.target.closest('[data-iv]');
-  const def = S.mode === 'rr' ? (ALL_IVS.includes(S.rrSort.iv) ? S.rrSort.iv : bestIv(row.dataset.sym)) : S.sort.iv;
+  const def = S.mode === 'rr' ? (ALL_IVS.includes(S.rrSort.iv) ? S.rrSort.iv : bestIv(row.dataset.sym))
+    : S.mode === 'pump' || S.mode === 'adx' ? momSort().iv : S.sort.iv;
   openDetail(row.dataset.sym, c ? c.dataset.iv : (def || S.ivs[0]));
 }
 function bestIv(sym) {
