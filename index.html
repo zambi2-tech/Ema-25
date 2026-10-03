@@ -52,6 +52,9 @@ input[type=search]{flex:1;min-width:0;padding:8px 10px;background:var(--panel);b
 .pick .k{color:var(--muted)}
 
 .seg{display:flex;gap:4px;margin-top:8px}
+.seg.stack{flex-direction:column}
+.segrow{display:flex;gap:4px;min-width:0}
+.seg .wide{flex:1 1 100%}
 .seg button,.seg .pick{flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;
   background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:9px;
   padding:7px 5px;font-size:12.5px;font-weight:500;white-space:nowrap}
@@ -284,7 +287,8 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
     must pass all of the ones you switch on. Above signal: MACD is above its signal line. Above 0: MACD is above
     the zero line. Hist rising: the histogram is higher than on the last closed candle. New cross: MACD crossed above
     its signal line on the current candle or one of the two before it, close to the zero line (within 20% of the
-    biggest MACD swing over the last 50 candles).</p>
+    biggest MACD swing over the last 50 candles). Above signal on all timeframes: MACD is above its signal line on
+    every timeframe shown on the screen at once, whichever timeframe you picked.</p>
   <button class="done" id="done">Done</button>
 </section>
 
@@ -371,7 +375,7 @@ const S = {
   ivs: ALL_IVS.slice(), top: 0, hideStable: true, filter: 'all', rrFilter: 'all',
   sort: { by: 'vol', iv: '', dir: -1 }, rrSort: { iv: 'best', dir: -1 }, q: '',
   pumpSort: { by: 'val', iv: '', dir: -1 }, adxSort: { by: 'val', iv: '', dir: -1 }, macdSort: { by: 'val', iv: '', dir: -1 },
-  macdF: { sig: true, zero: false, hist: false, cross: false },
+  macdF: { sig: true, zero: false, hist: false, cross: false, all: false },
   pumpFilter: 'all', adxFilter: 'up', minPump: 0, minAdx: 0,
   detail: null, show: { tl: true, ema: true, rr: true, macd: true },
   lastUpdate: 0, nextAt: 0, tickErr: '', busy: false
@@ -962,6 +966,7 @@ function render() {
   if (mom) {
     const so = momSort(), ref = so.iv;
     rows = rows.filter(r => momPass(r.st[ref]));
+    if (S.mode === 'macd' && S.macdF.all) rows = rows.filter(r => ivs.every(iv => r.st[iv] && r.st[iv].aboveSig));
     if (so.by !== 'vol') {
       const val = r => momValue(r.st[ref], so.by);
       rows.sort((a, b) => {
@@ -1000,7 +1005,8 @@ function render() {
   if (q) empty = `No ${QUOTE} pair matches “${esc(S.q.trim())}”.`;
   else if (list.length && S.mode === 'pump') empty = `Nothing matches this filter on ${LABEL[S.pumpSort.iv]} right now.`;
   else if (list.length && S.mode === 'adx') empty = `No trend matches this filter on ${LABEL[S.adxSort.iv]} right now.`;
-  else if (list.length && S.mode === 'macd') empty = `No token passes these MACD filters on ${LABEL[S.macdSort.iv]} right now.`;
+  else if (list.length && S.mode === 'macd') empty = S.macdF.all ? 'No token passes these MACD filters right now.'
+    : `No token passes these MACD filters on ${LABEL[S.macdSort.iv]} right now.`;
   else if (list.length && rr) empty = S.rrFilter === 'rboth' ? 'No token is testing the EMA 25 and a trendline together right now.'
     : S.rrFilter === 'rtest' ? 'No token is testing a support right now.' : `No setup with R:R of ${S.minRR} or more right now.`;
   else if (list.length && S.filter !== 'all') {
@@ -1038,14 +1044,18 @@ function renderHeader() {
   for (const b of $('mode').querySelectorAll('button')) b.setAttribute('aria-selected', String(b.dataset.m === S.mode));
 
   // filter row and its picker depend on the tab
+  $('filter').classList.toggle('stack', S.mode === 'macd');
   const fb = (f, label, cur) => `<button data-f="${f}" aria-pressed="${f === cur}">${label}</button>`;
   const picker = (label, aria, options, cur, text) => `<label class="pick"><span>${label}</span><select id="minPick" aria-label="${aria}">`
     + options.map(v => `<option value="${v}" ${v === cur ? 'selected' : ''}>${text(v)}</option>`).join('') + '</select></label>';
   if (S.mode === 'macd') {
-    const mf = (k, label) => `<button data-mf="${k}" aria-pressed="${S.macdF[k]}">${label}</button>`;
-    $('filter').innerHTML = mf('sig', 'Above signal') + mf('zero', 'Above 0') + mf('hist', 'Hist rising')
+    const mf = (k, label, cls = '') => `<button data-mf="${k}" class="${cls}" aria-pressed="${S.macdF[k]}">${label}</button>`;
+    const n = S.ivs.length;
+    $('filter').innerHTML = '<div class="segrow">' + mf('sig', 'Above signal') + mf('zero', 'Above 0') + mf('hist', 'Hist rising')
       + mf('cross', '<i class="sw box"></i>New cross')
-      + picker(LABEL[ms.iv], 'Timeframe for MACD filters and ranking', S.ivs, ms.iv, v => `Filter and rank on ${LABEL[v]}`);
+      + picker(LABEL[ms.iv], 'Timeframe for MACD filters and ranking', S.ivs, ms.iv, v => `Filter and rank on ${LABEL[v]}`)
+      + '</div><div class="segrow">'
+      + mf('all', n > 1 ? `Above signal on all ${n} timeframes` : 'Above signal on the timeframe shown', 'wide') + '</div>';
   } else if (S.mode === 'pump') {
     $('filter').innerHTML = fb('all', 'All', S.pumpFilter) + fb('up', 'Rising', S.pumpFilter)
       + fb('vol', '<i class="sw box"></i>With volume', S.pumpFilter)
