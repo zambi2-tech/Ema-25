@@ -28,9 +28,9 @@ button{font-family:inherit;cursor:pointer}
 header{position:sticky;top:0;z-index:5;background:var(--ink);
   padding:calc(env(safe-area-inset-top) + 10px) 12px 0;border-bottom:1px solid var(--line)}
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
-.mode{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;min-width:0}
+.mode{display:flex;gap:9px;overflow-x:auto;scrollbar-width:none;min-width:0}
 .mode::-webkit-scrollbar{display:none}
-.mode button{background:none;border:0;padding:0 0 4px;font-size:16.5px;font-weight:700;letter-spacing:-.015em;flex:none;
+.mode button{background:none;border:0;padding:0 0 4px;font-size:14.5px;font-weight:700;letter-spacing:-.015em;flex:none;
   color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
 .mode button[aria-selected=true]{color:var(--text);border-bottom-color:var(--gold)}
 .count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;padding-bottom:7px}
@@ -54,7 +54,8 @@ input[type=search]{flex:1;min-width:0;padding:8px 10px;background:var(--panel);b
 .seg{display:flex;gap:4px;margin-top:8px}
 .seg.stack{flex-direction:column}
 .segrow{display:flex;gap:4px;min-width:0}
-.seg .wide{flex:1 1 100%}
+.seglab{flex:none;align-self:center;font-size:12.5px;color:var(--muted);padding-right:2px;white-space:nowrap}
+.seg .tfc{flex:1 1 0;padding:7px 0;font-weight:600}
 .seg button,.seg .pick{flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;
   background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:9px;
   padding:7px 5px;font-size:12.5px;font-weight:500;white-space:nowrap}
@@ -64,6 +65,8 @@ input[type=search]{flex:1;min-width:0;padding:8px 10px;background:var(--panel);b
 .sw.hold{box-shadow:inset 0 -3px 0 var(--gold)}
 .sw.test{box-shadow:inset 0 0 0 1.5px var(--gold),inset 0 -3px 0 var(--gold)}
 .sw.box{box-shadow:inset 0 0 0 1.5px var(--gold)}
+.sw.edge{background:rgba(52,209,166,.2);box-shadow:inset 3px 0 0 var(--gold)}
+.facts dd.big.mut{color:var(--muted)}
 .sw.brk{background:rgba(255,110,122,.3);border-bottom:2px dashed var(--down)}
 
 .bar{height:2px;margin:10px -12px 0;overflow:hidden}
@@ -157,6 +160,15 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 .facts dd.big{font-size:17px;color:var(--gold)}
 .facts dd.big.ema{color:var(--ema)}
 .facts dd.big.rr{color:var(--up)}
+.facts dd.pass{color:var(--up)}
+.c.sc{font-size:12.5px}
+.c.sc.pass{background:rgba(52,209,166,.2);color:var(--up);box-shadow:inset 0 0 0 1.5px rgba(52,209,166,.55)}
+.c.sc.pass::before{content:"✓";position:absolute;top:1px;right:3px;font-size:9px;font-weight:700}
+.c.sc.fail{background:rgba(140,150,179,.08);color:var(--muted)}
+.c.sc.warn{background:rgba(255,110,122,.12);color:var(--down)}
+.tok span.chk{color:var(--muted)}
+.row.best .tok span.chk{color:var(--gold);font-weight:600}
+.row.best{box-shadow:inset 3px 0 0 var(--gold);padding-left:6px}
 .facts .sep{grid-column:1/-1;height:1px;background:var(--line);margin:6px 0}
 .facts .hd{grid-column:1/-1;font-size:15px;font-weight:650;color:var(--text)}
 .facts .none{grid-column:1/-1;color:var(--muted);line-height:1.45}
@@ -197,6 +209,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
       <button role="tab" data-m="pump" aria-selected="false">Pump</button>
       <button role="tab" data-m="adx" aria-selected="false">ADX</button>
       <button role="tab" data-m="macd" aria-selected="false">MACD</button>
+      <button role="tab" data-m="scalp" aria-selected="false">Scalp</button>
     </div>
   </div>
   <div class="srow">
@@ -222,7 +235,8 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 <footer>
   EMA 25 and Trendline show how far the live price is from that line on each timeframe; green is above and red
   is below. R:R rates a buy at today's price by reward to risk. Pump ranks what is rising fastest right now,
-  ADX ranks the strongest trends, and MACD compares momentum by PPO. Tap a column to sort by it, and tap again to flip. Tap a token, or one of its
+  ADX ranks the strongest trends, MACD compares momentum by PPO, and Scalp combines them into a ranked
+  list of scalping opportunities. Tap a column to sort by it, and tap again to flip. Tap a token, or one of its
   cells, to see its chart. Not financial advice.
 </footer>
 
@@ -278,6 +292,16 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
     Green means an uptrend (+DI above −DI) and red means a downtrend. "Rising" means ADX went up on the last closed
     candle, so the trend is gaining strength. Uptrend shows only uptrends, and Rising ADX shows only uptrends whose
     ADX is rising, marked with a gold box. ADX uses closed candles, and the filters use the timeframe you sort by.</p>
+  <h3>Scalp tab</h3>
+  <p>Runs the scalping routine for you on the most traded tokens (Top 50 by volume unless you pick otherwise) and
+    ranks them from the best opportunity down. Each token gets four checks:</p>
+  <p>Pump: on 15m, price rose over the last 3 candles, by no more than 8% (so you're not chasing), with at least
+    twice the usual volume. ADX: on 15m, an uptrend with ADX of 25 or more and rising. MACD: above its signal line on
+    1H, 15m and 3m, with a new crossover or a rising histogram on 3m. R:R: a setup with reward to risk of 2 or more
+    on 15m or 3m.</p>
+  <p>A ✓ marks each check that passes, and tokens that pass all four get a gold edge. Tap a token to see its 15m
+    chart with the entry, stop and target. The Scalp tab always loads 1H, 15m and 3m, even if they're switched off
+    above.</p>
   <h3>MACD tab</h3>
   <p>MACD (12, 26, 9) on each timeframe, using the live price for the candle forming now. Each cell shows the
     PPO, which is the MACD as a percentage of the price, so tokens with very different prices can be compared.
@@ -287,8 +311,8 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
     must pass all of the ones you switch on. Above signal: MACD is above its signal line. Above 0: MACD is above
     the zero line. Hist rising: the histogram is higher than on the last closed candle. New cross: MACD crossed above
     its signal line on the current candle or one of the two before it, close to the zero line (within 20% of the
-    biggest MACD swing over the last 50 candles). Above signal on all timeframes: MACD is above its signal line on
-    every timeframe shown on the screen at once, whichever timeframe you picked.</p>
+    biggest MACD swing over the last 50 candles). Above signal on: tap one or more timeframes on the second row, and only tokens
+    whose MACD is above its signal line on every timeframe you tapped are listed. Tap a timeframe again to remove it.</p>
   <button class="done" id="done">Done</button>
 </section>
 
@@ -353,6 +377,10 @@ const ADX_N = 14;
 const MACD_P = { fast: 12, slow: 26, signal: 9, nearZero: 0.2, zeroLookback: 50 };
 const MACD_SCALE = { '1d': 6, '4h': 3, '1h': 1.5, '15m': 0.75, '3m': 0.4, '1m': 0.25 }; // PPO % where color is full
 const MOM = ['pump', 'adx', 'macd'];
+// The scalping routine: thresholds for each check
+const SCALP = { maxChase: 8, minVol: 2, minAdx: 25, minRR: 2 };
+const SCALP_IVS = ['1h', '15m', '3m'];
+const SCALP_TOPS = [30, 50, 100];
 // ----------------------------------------------
 
 const K = 2 / (PERIOD + 1);
@@ -375,8 +403,9 @@ const S = {
   ivs: ALL_IVS.slice(), top: 0, hideStable: true, filter: 'all', rrFilter: 'all',
   sort: { by: 'vol', iv: '', dir: -1 }, rrSort: { iv: 'best', dir: -1 }, q: '',
   pumpSort: { by: 'val', iv: '', dir: -1 }, adxSort: { by: 'val', iv: '', dir: -1 }, macdSort: { by: 'val', iv: '', dir: -1 },
-  macdF: { sig: true, zero: false, hist: false, cross: false, all: false },
+  macdF: { sig: true, zero: false, hist: false, cross: false, tfs: [] },
   pumpFilter: 'all', adxFilter: 'up', minPump: 0, minAdx: 0,
+  scalpFilter: '3plus', scalpTop: 50, scalpSort: 'score',
   detail: null, show: { tl: true, ema: true, rr: true, macd: true },
   lastUpdate: 0, nextAt: 0, tickErr: '', busy: false
 };
@@ -388,7 +417,10 @@ try {
   if (Array.isArray(p.ivs)) { const v = ALL_IVS.filter(iv => p.ivs.includes(iv)); if (v.length) S.ivs = v; }
   if (['all', 'sup', 'test', 'brk'].includes(p.filter)) S.filter = p.filter;
   if (['all', 'rtest', 'rboth'].includes(p.rrFilter)) S.rrFilter = p.rrFilter;
-  if (['ema', 'tl', 'rr', 'pump', 'adx', 'macd'].includes(p.mode)) S.mode = p.mode;
+  if (['ema', 'tl', 'rr', 'pump', 'adx', 'macd', 'scalp'].includes(p.mode)) S.mode = p.mode;
+  if (['all4', '3plus', 'all'].includes(p.scalpFilter)) S.scalpFilter = p.scalpFilter;
+  if (SCALP_TOPS.includes(p.scalpTop)) S.scalpTop = p.scalpTop;
+  if (['score', 'rr', 'vol'].includes(p.scalpSort)) S.scalpSort = p.scalpSort;
   for (const k of ['pumpSort', 'adxSort', 'macdSort'])
     if (p[k] && ['val', 'rvol', 'hist', 'vol'].includes(p[k].by) && ALL_IVS.includes(p[k].iv))
       S[k] = { by: p[k].by, iv: p[k].iv, dir: p[k].dir === 1 ? 1 : -1 };
@@ -403,7 +435,11 @@ try {
   if (p.rrSort && (['best', 'vol'].includes(p.rrSort.iv) || ALL_IVS.includes(p.rrSort.iv)))
     S.rrSort = { iv: p.rrSort.iv, dir: p.rrSort.dir === 1 ? 1 : -1 };
   if (p.show) S.show = { tl: p.show.tl !== false, ema: p.show.ema !== false, rr: p.show.rr !== false, macd: p.show.macd !== false };
-  if (p.macdF) for (const k of Object.keys(S.macdF)) if (typeof p.macdF[k] === 'boolean') S.macdF[k] = p.macdF[k];
+  if (p.macdF) {
+    for (const k of ['sig', 'zero', 'hist', 'cross']) if (typeof p.macdF[k] === 'boolean') S.macdF[k] = p.macdF[k];
+    if (Array.isArray(p.macdF.tfs)) S.macdF.tfs = ALL_IVS.filter(iv => p.macdF.tfs.includes(iv));
+    else if (p.macdF.all === true) S.macdF.tfs = ALL_IVS.slice();        // older setting: all timeframes
+  }
 } catch (_) {}
 function savePrefs() {
   try {
@@ -411,7 +447,7 @@ function savePrefs() {
       ivs: S.ivs, filter: S.filter, rrFilter: S.rrFilter, mode: S.mode, minB: S.minB, minRR: S.minRR,
       sort: S.sort, rrSort: S.rrSort, show: S.show, pumpSort: S.pumpSort, adxSort: S.adxSort,
       pumpFilter: S.pumpFilter, adxFilter: S.adxFilter, minPump: S.minPump, minAdx: S.minAdx,
-      macdSort: S.macdSort, macdF: S.macdF }));
+      macdSort: S.macdSort, macdF: S.macdF, scalpFilter: S.scalpFilter, scalpTop: S.scalpTop, scalpSort: S.scalpSort }));
   } catch (_) {}
 }
 
@@ -627,16 +663,23 @@ function loadChartOnce(sym, iv) {
 }
 
 // ---------- Download queue ----------
+function scalpUniverse() { return universe().slice(0, S.scalpTop); }
+function wantedCharts() {
+  const want = new Map();
+  for (const sym of universe()) for (const iv of S.ivs) want.set(sym + '|' + iv, [sym, iv]);
+  if (S.mode === 'scalp') for (const sym of scalpUniverse()) for (const iv of SCALP_IVS) want.set(sym + '|' + iv, [sym, iv]);
+  return want;
+}
 function schedule() {
   const now = serverNow(), list = universe(), rank = new Map(list.map((s, i) => [s, i]));
-  const ivs = new Set(S.ivs);
+  const want = wantedCharts();
   S.queue = S.queue.filter(([s, iv]) => {
-    if (rank.has(s) && ivs.has(iv)) return true;
+    if (want.has(s + '|' + iv)) return true;
     S.pending.delete(s + '|' + iv);
     return false;
   });
-  for (const sym of list) for (const iv of S.ivs) {
-    const key = sym + '|' + iv, ch = S.charts.get(key);
+  for (const [key, [sym, iv]] of want) {
+    const ch = S.charts.get(key);
     if ((!ch || now >= ch.refetchAt) && !S.pending.has(key)) { S.pending.add(key); S.queue.push([sym, iv]); }
   }
   S.queue.sort((a, b) => rank.get(a[0]) - rank.get(b[0]) || ALL_IVS.indexOf(a[1]) - ALL_IVS.indexOf(b[1]));
@@ -871,7 +914,7 @@ function cellRR(s, iv) {
 }
 
 function layout() {
-  const n = S.ivs.length, r = document.documentElement.style;
+  const n = S.mode === 'scalp' ? 4 : S.ivs.length, r = document.documentElement.style;
   r.setProperty('--n', n);
   r.setProperty('--tok', n <= 3 ? '1.6fr' : n === 4 ? '1.45fr' : n === 5 ? '1.25fr' : '1.1fr');
   r.setProperty('--fs', n <= 4 ? '13.5px' : n === 5 ? '12.5px' : '11.5px');
@@ -909,6 +952,95 @@ function cellMACD(s, iv) {
   return `<div class="c${s.freshCross ? ' hot' : ''}" data-iv="${iv}" style="background:rgba(${rgb},${(0.07 + a * 0.55).toFixed(3)});color:${color}">`
     + `${p >= 0 ? '+' : '−'}${num}%<small>${cap}</small></div>`;
 }
+// ---------- Scalp tab: the scalping routine as four checks ----------
+function scalpInfo(sym) {
+  const t = S.tick.get(sym);
+  if (!t) return null;
+  const ch = iv => S.charts.get(sym + '|' + iv), price = t.price;
+  const pu = pumpInfo(ch('15m'), price), ax = adxInfo(ch('15m'));
+  const m1 = macdInfo(ch('1h'), price), m15 = macdInfo(ch('15m'), price), m3 = macdInfo(ch('3m'), price);
+  const rr = ['15m', '3m'].map(iv => ({ iv, su: setup(ch(iv), price) })).filter(x => x.su)
+    .sort((a, b) => b.su.rr - a.su.rr)[0] || null;
+  const macds = [m1, m15, m3];
+  const checks = {
+    pump: !!pu && pu.pct > 0 && pu.pct <= SCALP.maxChase && pu.rvol != null && pu.rvol >= SCALP.minVol,
+    adx: !!ax && ax.up && ax.rising && ax.adx >= SCALP.minAdx,
+    macd: macds.every(Boolean) && macds.every(m => m.aboveSig) && (m3.freshCross || m3.histRising),
+    rr: !!rr && rr.su.rr >= SCALP.minRR
+  };
+  const loaded = SCALP_IVS.every(iv => { const c = ch(iv); return c && c.c; });
+  return { pu, ax, m1, m15, m3, rr, checks, score: Object.values(checks).filter(Boolean).length, loaded };
+}
+function scalpCells(si) {
+  const c = (state, main, cap, iv) => `<div class="c sc ${state}" data-iv="${iv}">${main}<small>${cap}</small></div>`;
+  const na = iv => `<div class="c na" data-iv="${iv}">–</div>`;
+  const { pu, ax, m1, m15, m3, rr, checks } = si;
+  const pump = pu ? c(checks.pump ? 'pass' : pu.pct > SCALP.maxChase ? 'warn' : 'fail', fmtPct(pu.pct),
+    pu.pct > SCALP.maxChase ? 'chasing' : `vol ×${pu.rvol != null ? pu.rvol.toFixed(1) : '–'}`, '15m') : na('15m');
+  const adx = ax ? c(checks.adx ? 'pass' : 'fail', ax.adx.toFixed(0), ax.up ? (ax.rising ? 'up, rising' : 'up, falling') : 'down', '15m') : na('15m');
+  const macd = m1 && m15 && m3 ? c(checks.macd ? 'pass' : 'fail', `${[m1, m15, m3].filter(m => m.aboveSig).length}/3`,
+    m3.freshCross ? 'new cross' : m3.histRising ? 'hist ↑' : 'hist ↓', '3m') : na('3m');
+  const rrc = rr ? c(checks.rr ? 'pass' : 'fail', fmtRR(rr.su.rr), LABEL[rr.iv], rr.iv) : (si.loaded ? c('fail', '–', 'no setup', '15m') : na('15m'));
+  return pump + adx + macd + rrc;
+}
+function renderScalp() {
+  const list = scalpUniverse(), q = S.q.trim().toUpperCase();
+  let rows = list.map(sym => ({ sym, base: S.pairs.get(sym), price: S.tick.get(sym).price, vol: S.tick.get(sym).vol, si: scalpInfo(sym) }))
+    .filter(r => r.si);
+  if (q) rows = rows.filter(r => r.base.includes(q));
+  if (S.scalpFilter !== 'all') rows = rows.filter(r => r.si.score >= (S.scalpFilter === 'all4' ? 4 : 3));
+  const rrOf = r => r.si.rr ? r.si.rr.su.rr : -1;
+  if (S.scalpSort === 'score') rows.sort((a, b) => b.si.score - a.si.score || rrOf(b) - rrOf(a));
+  else if (S.scalpSort === 'rr') rows.sort((a, b) => rrOf(b) - rrOf(a));
+  S.countText = !list.length ? '' : `${rows.length} of top ${list.length} pairs`;
+  const [have, total] = coverage();
+  let empty = 'Waiting for data from Binance…';
+  if (q) empty = `No ${QUOTE} pair matches “${esc(S.q.trim())}” in the top ${S.scalpTop}.`;
+  else if (list.length && have < total) empty = `Loading 1H, 15m and 3m charts for the top ${S.scalpTop} tokens (${have}/${total})…`;
+  else if (list.length) empty = S.scalpFilter === 'all4' ? 'No token passes all four checks right now. Try 3+ checks.'
+    : 'No token passes 3 or more checks right now. Markets may be quiet; check again in a few minutes.';
+  $('list').innerHTML = rows.length
+    ? rows.map(r => `<div class="row${r.si.score === 4 ? ' best' : ''}" role="button" tabindex="0" data-sym="${r.sym}" aria-label="${esc(r.base)} chart">`
+        + `<div class="tok"><b>${esc(r.base)}</b><span>${fmtPrice(r.price)}</span>`
+        + `<span class="chk">${r.si.score === 4 ? 'All 4 checks' : `${r.si.score} of 4 checks`}</span></div>`
+        + scalpCells(r.si) + '</div>').join('')
+    : `<div class="empty">${empty}</div>`;
+  renderHeader(); renderStatus();
+  if (S.detail) renderDetail();
+}
+function renderScalpHeader() {
+  const key = ['scalp', S.scalpFilter, S.scalpTop, S.scalpSort].join('|');
+  if (key === headKey) return;
+  headKey = key;
+  const so = S.scalpSort;
+  $('cols').innerHTML = `<button data-k="vol" class="${so === 'vol' ? 'on' : ''}">Token${so === 'vol' ? ' ↓' : ''}</button>`
+    + `<button data-k="score" class="${so === 'score' ? 'on' : ''}">Pump 15m</button><button data-k="score" class="${so === 'score' ? 'on' : ''}">ADX 15m</button>`
+    + `<button data-k="score" class="${so === 'score' ? 'on' : ''}">MACD</button><button data-k="rr" class="${so === 'rr' ? 'on' : ''}">R:R${so === 'rr' ? ' ↓' : ''}</button>`;
+  for (const b of $('mode').querySelectorAll('button')) b.setAttribute('aria-selected', String(b.dataset.m === S.mode));
+  $('filter').classList.remove('stack');
+  const fb = (f, label) => `<button data-f="${f}" aria-pressed="${f === S.scalpFilter}">${label}</button>`;
+  $('filter').innerHTML = fb('all4', '<i class="sw edge"></i>All 4 checks') + fb('3plus', '3+ checks') + fb('all', 'All')
+    + `<label class="pick"><span>Top ${S.scalpTop}</span><select id="minPick" aria-label="How many tokens to check">`
+    + SCALP_TOPS.map(v => `<option value="${v}" ${v === S.scalpTop ? 'selected' : ''}>Check the top ${v} by volume</option>`).join('') + '</select></label>';
+  $('sort').innerHTML = '<option value="score">Best opportunities first</option><option value="rr">Highest R:R first</option><option value="vol">24h volume</option>';
+  $('sort').value = so;
+  $('sortLabel').textContent = so === 'score' ? 'Best' : so === 'rr' ? 'R:R ↓' : 'Volume';
+  document.title = 'Scalping opportunities';
+}
+function scalpFacts(sym) {
+  const si = scalpInfo(sym);
+  if (!si) return '';
+  const out = [`<div class="hd">Scalp checks: ${si.score} of 4</div>`];
+  const line = (ok, k, v) => out.push(`<dt>${ok ? '✓' : '✗'} ${k}</dt><dd class="${ok ? 'pass' : ''}">${v}</dd>`);
+  const { pu, ax, m1, m15, m3, rr, checks } = si;
+  line(checks.pump, 'Pump on 15m', pu ? `${fmtPct(pu.pct)}, volume ×${pu.rvol != null ? pu.rvol.toFixed(1) : '–'}` : 'loading');
+  line(checks.adx, 'ADX on 15m', ax ? `${ax.adx.toFixed(1)}, ${ax.up ? 'uptrend' : 'downtrend'}, ${ax.rising ? 'rising' : 'falling'}` : 'loading');
+  line(checks.macd, 'MACD', m1 && m15 && m3
+    ? `1H ${m1.aboveSig ? '↑' : '↓'}, 15m ${m15.aboveSig ? '↑' : '↓'}, 3m ${m3.aboveSig ? '↑' : '↓'} ${m3.freshCross ? 'new cross' : m3.histRising ? 'hist rising' : 'hist falling'}` : 'loading');
+  line(checks.rr, 'Reward to risk', rr ? `${fmtRR(rr.su.rr)} on ${LABEL[rr.iv]}` : 'no setup on 15m or 3m');
+  return out.join('');
+}
+
 // Pump, ADX and MACD tabs rank and filter on one timeframe: the one being sorted
 const isMom = () => MOM.includes(S.mode);
 function momSort() { return S[S.mode + 'Sort']; }
@@ -948,6 +1080,8 @@ function rrPass(s) {
 }
 
 function render() {
+  layout();
+  if (S.mode === 'scalp') { renderScalp(); return; }
   const list = universe(), ivs = S.ivs, rr = S.mode === 'rr', mom = isMom();
   if (S.sort.by !== 'vol' && !ivs.includes(S.sort.iv)) S.sort = { by: 'vol', iv: '', dir: -1 };
   fixMomSorts();
@@ -966,7 +1100,8 @@ function render() {
   if (mom) {
     const so = momSort(), ref = so.iv;
     rows = rows.filter(r => momPass(r.st[ref]));
-    if (S.mode === 'macd' && S.macdF.all) rows = rows.filter(r => ivs.every(iv => r.st[iv] && r.st[iv].aboveSig));
+    const tfs = S.mode === 'macd' ? S.macdF.tfs.filter(iv => ivs.includes(iv)) : [];
+    if (tfs.length) rows = rows.filter(r => tfs.every(iv => r.st[iv] && r.st[iv].aboveSig));
     if (so.by !== 'vol') {
       const val = r => momValue(r.st[ref], so.by);
       rows.sort((a, b) => {
@@ -1005,7 +1140,7 @@ function render() {
   if (q) empty = `No ${QUOTE} pair matches “${esc(S.q.trim())}”.`;
   else if (list.length && S.mode === 'pump') empty = `Nothing matches this filter on ${LABEL[S.pumpSort.iv]} right now.`;
   else if (list.length && S.mode === 'adx') empty = `No trend matches this filter on ${LABEL[S.adxSort.iv]} right now.`;
-  else if (list.length && S.mode === 'macd') empty = S.macdF.all ? 'No token passes these MACD filters right now.'
+  else if (list.length && S.mode === 'macd') empty = S.macdF.tfs.some(iv => ivs.includes(iv)) ? 'No token passes these MACD filters right now.'
     : `No token passes these MACD filters on ${LABEL[S.macdSort.iv]} right now.`;
   else if (list.length && rr) empty = S.rrFilter === 'rboth' ? 'No token is testing the EMA 25 and a trendline together right now.'
     : S.rrFilter === 'rtest' ? 'No token is testing a support right now.' : `No setup with R:R of ${S.minRR} or more right now.`;
@@ -1027,6 +1162,7 @@ function render() {
 
 let headKey = '';
 function renderHeader() {
+  if (S.mode === 'scalp') { renderScalpHeader(); return; }
   fixMomSorts();
   const rr = S.mode === 'rr', mom = isMom(), so = S.sort, rs = S.rrSort, ms = mom ? momSort() : null;
   const key = [S.ivs.join(), S.mode, so.by, so.iv, so.dir, rs.iv, rs.dir, S.filter, S.rrFilter,
@@ -1049,13 +1185,14 @@ function renderHeader() {
   const picker = (label, aria, options, cur, text) => `<label class="pick"><span>${label}</span><select id="minPick" aria-label="${aria}">`
     + options.map(v => `<option value="${v}" ${v === cur ? 'selected' : ''}>${text(v)}</option>`).join('') + '</select></label>';
   if (S.mode === 'macd') {
-    const mf = (k, label, cls = '') => `<button data-mf="${k}" class="${cls}" aria-pressed="${S.macdF[k]}">${label}</button>`;
-    const n = S.ivs.length;
+    const mf = (k, label) => `<button data-mf="${k}" aria-pressed="${S.macdF[k]}">${label}</button>`;
     $('filter').innerHTML = '<div class="segrow">' + mf('sig', 'Above signal') + mf('zero', 'Above 0') + mf('hist', 'Hist rising')
       + mf('cross', '<i class="sw box"></i>New cross')
       + picker(LABEL[ms.iv], 'Timeframe for MACD filters and ranking', S.ivs, ms.iv, v => `Filter and rank on ${LABEL[v]}`)
       + '</div><div class="segrow">'
-      + mf('all', n > 1 ? `Above signal on all ${n} timeframes` : 'Above signal on the timeframe shown', 'wide') + '</div>';
+      + '<span class="seglab">Above signal on</span>'
+      + S.ivs.map(iv => `<button data-mtf="${iv}" class="tfc" aria-pressed="${S.macdF.tfs.includes(iv)}" aria-label="MACD above signal on ${LABEL[iv]}">${LABEL[iv]}</button>`).join('')
+      + '</div>';
   } else if (S.mode === 'pump') {
     $('filter').innerHTML = fb('all', 'All', S.pumpFilter) + fb('up', 'Rising', S.pumpFilter)
       + fb('vol', '<i class="sw box"></i>With volume', S.pumpFilter)
@@ -1117,10 +1254,10 @@ function renderHeader() {
 }
 
 function coverage() {
-  const list = universe();
+  const want = wantedCharts();
   let have = 0;
-  for (const s of list) for (const iv of S.ivs) if (S.charts.has(s + '|' + iv)) have++;
-  return [have, list.length * S.ivs.length];
+  for (const key of want.keys()) if (S.charts.has(key)) have++;
+  return [have, want.size];
 }
 
 function renderStatus() {
@@ -1258,7 +1395,7 @@ function facts(ch, price, sym, iv) {
   } else {
     const where = su.both ? `EMA 25 + trendline, ${fmtExact(su.low, sym)} to ${fmtExact(su.top, sym)}`
       : `${su.kinds[0] === 'ema' ? 'EMA 25' : 'Trendline'} at ${fmtExact(su.top, sym)}`;
-    row(setupRows, 'Reward to risk', su.rr > 0 ? `${fmtRR(su.rr)} to 1` : '0', 'big rr');
+    row(setupRows, 'Reward to risk', su.rr > 0 ? `${fmtRR(su.rr)} to 1` : '0', su.rr > 0 ? 'big rr' : 'big mut');
     row(setupRows, 'Entry (price now)', fmtExact(price, sym));
     row(setupRows, 'Stop', `${fmtExact(su.stop, sym)} (${fmtPct((su.stop - price) / price * 100)})`);
     row(setupRows, 'Target', `${fmtExact(su.target, sym)} (${fmtPct((su.target - price) / price * 100)})`);
@@ -1285,7 +1422,7 @@ function facts(ch, price, sym, iv) {
       : `${mi.crossUp ? 'Bullish' : 'Bearish'}, ${mi.crossAgo === 0 ? 'this candle' : `${mi.crossAgo} candle${mi.crossAgo > 1 ? 's' : ''} ago`}${mi.nearZero ? ', near zero' : ''}`);
   } else row(momRows, 'MACD', 'not enough candles yet');
   const sep = '<div class="sep"></div>';
-  const order = S.mode === 'rr' ? [setupRows, lineRows, momRows]
+  const order = S.mode === 'scalp' ? [[scalpFacts(sym)], setupRows, momRows, lineRows] : S.mode === 'rr' ? [setupRows, lineRows, momRows]
     : isMom() ? [momRows, lineRows, setupRows] : [lineRows, setupRows, momRows];
   return order.map(r => r.join('')).join(sep);
 }
@@ -1434,12 +1571,16 @@ $('stableChips').addEventListener('click', e => {
 });
 $('mode').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.dataset.m === S.mode) return;
-  S.mode = b.dataset.m; savePrefs(); render(); window.scrollTo({ top: 0 });
+  S.mode = b.dataset.m; savePrefs(); schedule(); render(); window.scrollTo({ top: 0 });
 });
 $('filter').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
+  if (S.mode === 'scalp') { S.scalpFilter = b.dataset.f; savePrefs(); render(); return; }
   if (S.mode === 'macd') {                    // MACD filters can be combined
-    if (b.dataset.mf) S.macdF[b.dataset.mf] = !S.macdF[b.dataset.mf];
+    if (b.dataset.mtf) {
+      const iv = b.dataset.mtf, on = S.macdF.tfs.includes(iv);
+      S.macdF.tfs = ALL_IVS.filter(x => x === iv ? !on : S.macdF.tfs.includes(x));
+    } else if (b.dataset.mf) S.macdF[b.dataset.mf] = !S.macdF[b.dataset.mf];
     savePrefs(); render(); return;
   }
   if (S.mode === 'rr') S.rrFilter = b.dataset.f;
@@ -1450,6 +1591,7 @@ $('filter').addEventListener('click', e => {
 });
 $('filter').addEventListener('change', e => {
   if (e.target.id !== 'minPick') return;
+  if (S.mode === 'scalp') { S.scalpTop = +e.target.value; savePrefs(); schedule(); render(); return; }
   if (S.mode === 'macd') S.macdSort = Object.assign({}, S.macdSort, { iv: e.target.value });
   else if (S.mode === 'rr') S.minRR = +e.target.value;
   else if (S.mode === 'pump') S.minPump = +e.target.value;
@@ -1458,6 +1600,7 @@ $('filter').addEventListener('change', e => {
   savePrefs(); render();
 });
 $('sort').addEventListener('change', e => {
+  if (S.mode === 'scalp') { S.scalpSort = e.target.value; savePrefs(); render(); window.scrollTo({ top: 0 }); return; }
   const v = e.target.value.split(':');
   if (S.mode === 'rr') S.rrSort = { iv: v[0], dir: v[0] === 'vol' ? -1 : +v[1] };
   else if (isMom()) S[S.mode + 'Sort'] = { by: v[0], iv: v[1], dir: +v[2] };
@@ -1467,6 +1610,7 @@ $('sort').addEventListener('change', e => {
 $('cols').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const k = b.dataset.k;
+  if (S.mode === 'scalp') { S.scalpSort = k; savePrefs(); render(); window.scrollTo({ top: 0 }); return; }
   if (isMom()) {
     const key = S.mode + 'Sort', so = S[key];
     if (k === 'vol') S[key] = so.by === 'vol' ? { by: 'val', iv: so.iv, dir: -1 } : { by: 'vol', iv: so.iv, dir: -1 };
@@ -1490,7 +1634,7 @@ $('refresh').addEventListener('click', () => loop());
 function rowTap(e) {
   const row = e.target.closest('.row'); if (!row) return;
   const c = e.target.closest('[data-iv]');
-  const def = S.mode === 'rr' ? (ALL_IVS.includes(S.rrSort.iv) ? S.rrSort.iv : bestIv(row.dataset.sym))
+  const def = S.mode === 'scalp' ? '15m' : S.mode === 'rr' ? (ALL_IVS.includes(S.rrSort.iv) ? S.rrSort.iv : bestIv(row.dataset.sym))
     : isMom() ? momSort().iv : S.sort.iv;
   openDetail(row.dataset.sym, c ? c.dataset.iv : (def || S.ivs[0]));
 }
