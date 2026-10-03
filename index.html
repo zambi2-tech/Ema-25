@@ -12,7 +12,7 @@
 <style>
 :root{
   --ink:#131A2B; --panel:#1B2440; --line:#2A3558; --text:#E8EBF4; --muted:#8C96B3;
-  --up:#34D1A6; --down:#FF6E7A; --gold:#F0B90B; --ema:#A99BFF;
+  --up:#34D1A6; --down:#FF6E7A; --gold:#F0B90B; --ema:#A99BFF; --macd:#5B9CFF; --sig:#FF9F43;
   --n:6; --tok:1.1fr; --fs:11.5px; --tfs:14px;
 }
 *{box-sizing:border-box}
@@ -28,9 +28,9 @@ button{font-family:inherit;cursor:pointer}
 header{position:sticky;top:0;z-index:5;background:var(--ink);
   padding:calc(env(safe-area-inset-top) + 10px) 12px 0;border-bottom:1px solid var(--line)}
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
-.mode{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none;min-width:0}
+.mode{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;min-width:0}
 .mode::-webkit-scrollbar{display:none}
-.mode button{background:none;border:0;padding:0 0 4px;font-size:18px;font-weight:700;letter-spacing:-.015em;flex:none;
+.mode button{background:none;border:0;padding:0 0 4px;font-size:16.5px;font-weight:700;letter-spacing:-.015em;flex:none;
   color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
 .mode button[aria-selected=true]{color:var(--text);border-bottom-color:var(--gold)}
 .count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;padding-bottom:7px}
@@ -138,6 +138,16 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 .legend button[aria-pressed=false]{opacity:.45}
 .legend i{width:16px;height:3px;border-radius:2px}
 .legend i.split{background:linear-gradient(90deg,var(--up) 50%,var(--down) 50%)}
+.legend i.mac{background:linear-gradient(90deg,var(--macd) 50%,var(--sig) 50%)}
+.mchart{margin-top:6px}
+.mchart svg{display:block;width:100%;height:auto}
+.cmsg.sm{height:auto;padding:12px 0;font-size:13px}
+.g-macd{fill:none;stroke:var(--macd);stroke-width:1.5}
+.g-sig{fill:none;stroke:var(--sig);stroke-width:1.5}
+.g-zero{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3;opacity:.7}
+.g-hu{fill:var(--up)} .g-hd{fill:var(--down)}
+.t-macd{fill:var(--macd)} .t-sig{fill:var(--sig)}
+.g-mlab{fill:var(--muted);font-size:9.5px}
 .facts{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:16px 0 0;font-size:14px}
 .facts dt{color:var(--muted)}
 .facts dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
@@ -183,6 +193,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
       <button role="tab" data-m="rr" aria-selected="false">R:R</button>
       <button role="tab" data-m="pump" aria-selected="false">Pump</button>
       <button role="tab" data-m="adx" aria-selected="false">ADX</button>
+      <button role="tab" data-m="macd" aria-selected="false">MACD</button>
     </div>
   </div>
   <div class="srow">
@@ -207,8 +218,8 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 <main id="list"><div class="empty">Loading pairs…</div></main>
 <footer>
   EMA 25 and Trendline show how far the live price is from that line on each timeframe; green is above and red
-  is below. R:R rates a buy at today's price by reward to risk. Pump ranks what is rising fastest right now, and
-  ADX ranks the strongest trends. Tap a column to sort by it, and tap again to flip. Tap a token, or one of its
+  is below. R:R rates a buy at today's price by reward to risk. Pump ranks what is rising fastest right now,
+  ADX ranks the strongest trends, and MACD compares momentum by PPO. Tap a column to sort by it, and tap again to flip. Tap a token, or one of its
   cells, to see its chart. Not financial advice.
 </footer>
 
@@ -264,6 +275,16 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
     Green means an uptrend (+DI above −DI) and red means a downtrend. "Rising" means ADX went up on the last closed
     candle, so the trend is gaining strength. Uptrend shows only uptrends, and Rising ADX shows only uptrends whose
     ADX is rising, marked with a gold box. ADX uses closed candles, and the filters use the timeframe you sort by.</p>
+  <h3>MACD tab</h3>
+  <p>MACD (12, 26, 9) on each timeframe, using the live price for the candle forming now. Each cell shows the
+    PPO, which is the MACD as a percentage of the price, so tokens with very different prices can be compared.
+    Green means MACD is above its signal line and red means below. "hist ↑" means the histogram is rising, and a
+    gold box marks a new bullish crossover near the zero line.</p>
+  <p>Choose the timeframe with the button at the end of the filter row, then switch on any mix of filters. Tokens
+    must pass all of the ones you switch on. Above signal: MACD is above its signal line. Above 0: MACD is above
+    the zero line. Hist rising: the histogram is higher than on the last closed candle. New cross: MACD crossed above
+    its signal line on the current candle or one of the two before it, close to the zero line (within 20% of the
+    biggest MACD swing over the last 50 candles).</p>
   <button class="done" id="done">Done</button>
 </section>
 
@@ -278,14 +299,16 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
   <div class="dtitle"><h2 id="dSym"></h2><div class="dprice" id="dPrice"></div></div>
   <div class="tfs" id="dTfs" role="tablist" aria-label="Chart timeframe"></div>
   <div class="chart" id="chart"></div>
+  <div class="mchart" id="macdChart"></div>
   <div class="legend" id="dLegend">
     <button data-show="tl" aria-pressed="true"><i style="background:var(--gold)"></i>Trendline</button>
     <button data-show="ema" aria-pressed="true"><i style="background:var(--ema)"></i>EMA 25</button>
     <button data-show="rr" aria-pressed="true"><i class="split"></i>Target and stop</button>
+    <button data-show="macd" aria-pressed="true"><i class="mac"></i>MACD</button>
   </div>
   <dl class="facts" id="dFacts"></dl>
   <h3 class="dsec">All timeframes</h3>
-  <p class="dnote">Current trendline and EMA 25 price, the R:R of buying now, and ADX on each timeframe. Tap a row to chart it.</p>
+  <p class="dnote">Current trendline and EMA 25 price, the R:R of buying now, ADX and MACD (as PPO) on each timeframe. Tap a row to chart it.</p>
   <table class="tft" id="dTable"></table>
 </section>
 
@@ -323,6 +346,9 @@ const RR_MIN_OPTIONS = [0, 1, 1.5, 2, 3, 5];
 const PUMP_MIN_OPTIONS = [0, 1, 2, 3, 5, 10];      // minimum rise in %
 const ADX_MIN_OPTIONS = [0, 20, 25, 30, 40, 50];   // minimum ADX
 const ADX_N = 14;
+const MACD_P = { fast: 12, slow: 26, signal: 9, nearZero: 0.2, zeroLookback: 50 };
+const MACD_SCALE = { '1d': 6, '4h': 3, '1h': 1.5, '15m': 0.75, '3m': 0.4, '1m': 0.25 }; // PPO % where color is full
+const MOM = ['pump', 'adx', 'macd'];
 // ----------------------------------------------
 
 const K = 2 / (PERIOD + 1);
@@ -344,9 +370,10 @@ const S = {
   auto: true, mode: 'ema', minB: { ...MIN_DEFAULT }, minRR: 0,
   ivs: ALL_IVS.slice(), top: 0, hideStable: true, filter: 'all', rrFilter: 'all',
   sort: { by: 'vol', iv: '', dir: -1 }, rrSort: { iv: 'best', dir: -1 }, q: '',
-  pumpSort: { by: 'val', iv: '', dir: -1 }, adxSort: { by: 'val', iv: '', dir: -1 },
+  pumpSort: { by: 'val', iv: '', dir: -1 }, adxSort: { by: 'val', iv: '', dir: -1 }, macdSort: { by: 'val', iv: '', dir: -1 },
+  macdF: { sig: true, zero: false, hist: false, cross: false },
   pumpFilter: 'all', adxFilter: 'up', minPump: 0, minAdx: 0,
-  detail: null, show: { tl: true, ema: true, rr: true },
+  detail: null, show: { tl: true, ema: true, rr: true, macd: true },
   lastUpdate: 0, nextAt: 0, tickErr: '', busy: false
 };
 try {
@@ -357,9 +384,9 @@ try {
   if (Array.isArray(p.ivs)) { const v = ALL_IVS.filter(iv => p.ivs.includes(iv)); if (v.length) S.ivs = v; }
   if (['all', 'sup', 'test', 'brk'].includes(p.filter)) S.filter = p.filter;
   if (['all', 'rtest', 'rboth'].includes(p.rrFilter)) S.rrFilter = p.rrFilter;
-  if (['ema', 'tl', 'rr', 'pump', 'adx'].includes(p.mode)) S.mode = p.mode;
-  for (const k of ['pumpSort', 'adxSort'])
-    if (p[k] && ['val', 'rvol', 'vol'].includes(p[k].by) && ALL_IVS.includes(p[k].iv))
+  if (['ema', 'tl', 'rr', 'pump', 'adx', 'macd'].includes(p.mode)) S.mode = p.mode;
+  for (const k of ['pumpSort', 'adxSort', 'macdSort'])
+    if (p[k] && ['val', 'rvol', 'hist', 'vol'].includes(p[k].by) && ALL_IVS.includes(p[k].iv))
       S[k] = { by: p[k].by, iv: p[k].iv, dir: p[k].dir === 1 ? 1 : -1 };
   if (['all', 'up', 'vol'].includes(p.pumpFilter)) S.pumpFilter = p.pumpFilter;
   if (['all', 'up', 'rise'].includes(p.adxFilter)) S.adxFilter = p.adxFilter;
@@ -371,14 +398,16 @@ try {
     S.sort = { by: p.sort.by, iv: p.sort.iv || '', dir: p.sort.dir === 1 ? 1 : -1 };
   if (p.rrSort && (['best', 'vol'].includes(p.rrSort.iv) || ALL_IVS.includes(p.rrSort.iv)))
     S.rrSort = { iv: p.rrSort.iv, dir: p.rrSort.dir === 1 ? 1 : -1 };
-  if (p.show) S.show = { tl: p.show.tl !== false, ema: p.show.ema !== false, rr: p.show.rr !== false };
+  if (p.show) S.show = { tl: p.show.tl !== false, ema: p.show.ema !== false, rr: p.show.rr !== false, macd: p.show.macd !== false };
+  if (p.macdF) for (const k of Object.keys(S.macdF)) if (typeof p.macdF[k] === 'boolean') S.macdF[k] = p.macdF[k];
 } catch (_) {}
 function savePrefs() {
   try {
     localStorage.setItem('ema25prefs', JSON.stringify({ auto: S.auto, top: S.top, hideStable: S.hideStable,
       ivs: S.ivs, filter: S.filter, rrFilter: S.rrFilter, mode: S.mode, minB: S.minB, minRR: S.minRR,
       sort: S.sort, rrSort: S.rrSort, show: S.show, pumpSort: S.pumpSort, adxSort: S.adxSort,
-      pumpFilter: S.pumpFilter, adxFilter: S.adxFilter, minPump: S.minPump, minAdx: S.minAdx }));
+      pumpFilter: S.pumpFilter, adxFilter: S.adxFilter, minPump: S.minPump, minAdx: S.minAdx,
+      macdSort: S.macdSort, macdF: S.macdF }));
   } catch (_) {}
 }
 
@@ -544,6 +573,7 @@ function derive(ch) {
   }
   ch.atr = m ? tr / m : 0;
   computeADX(ch);
+  computeMACD(ch);
   if (!(ch.atr > 0)) return;
   const tl = ch.tl = findTrendline(ch);
   if (tl) ch.tlH = history(ch, tl.a, i => tl.ya + tl.s * (i - tl.a));
@@ -680,6 +710,50 @@ function computeADX(ch) {
   }
   ch.adx = adx; ch.adxPrev = prev; ch.pdi = pdi; ch.mdi = mdi;
 }
+// EMA that starts as a simple average once `len` values exist (from index `start`); null before that
+function emaSeries(vals, len, start = 0) {
+  const out = new Array(vals.length).fill(null), k = 2 / (len + 1);
+  if (vals.length - start < len) return out;
+  let sum = 0;
+  for (let i = start; i < start + len; i++) sum += vals[i];
+  out[start + len - 1] = sum / len;
+  for (let i = start + len; i < vals.length; i++) out[i] = vals[i] * k + out[i - 1] * (1 - k);
+  return out;
+}
+// MACD (12, 26, 9) on closed candles; the live candle is added in macdInfo
+function computeMACD(ch) {
+  const c = ch.c, n = c.length;
+  ch.macd = null;
+  if (n < MACD_P.slow + MACD_P.signal + 2) return;
+  const f = emaSeries(c, MACD_P.fast), sl = emaSeries(c, MACD_P.slow);
+  const m = c.map((_, i) => f[i] != null && sl[i] != null ? f[i] - sl[i] : null);
+  ch.macd = { f, sl, m, sig: emaSeries(m, MACD_P.signal, MACD_P.slow - 1) };
+}
+function macdInfo(ch, price) {
+  if (!ch || !ch.c || !ch.macd) return null;
+  const { f, sl, m, sig } = ch.macd, n = ch.c.length;
+  const kf = 2 / (MACD_P.fast + 1), ks = 2 / (MACD_P.slow + 1), kg = 2 / (MACD_P.signal + 1);
+  const fL = f[n - 1] + kf * (price - f[n - 1]), sL = sl[n - 1] + ks * (price - sl[n - 1]);
+  const mL = fL - sL, gL = sig[n - 1] + kg * (mL - sig[n - 1]), hL = mL - gL;
+  const M = i => i === n ? mL : m[i], Hh = i => i === n ? hL : m[i] - sig[i];
+  let cross = null;                                   // most recent crossover (index n = the live candle)
+  for (let i = n; i >= 1 && sig[i - 1] != null; i--) {
+    const a = Hh(i - 1), b = Hh(i);
+    if (a <= 0 && b > 0) { cross = { up: true, i }; break; }
+    if (a >= 0 && b < 0) { cross = { up: false, i }; break; }
+  }
+  const firstSig = sig.findIndex(v => v != null);
+  let swing = 0;
+  for (let i = Math.max(firstSig, n - MACD_P.zeroLookback + 1); i <= n; i++) swing = Math.max(swing, Math.abs(M(i)));
+  const nearZero = !!cross && Math.abs(M(cross.i)) <= MACD_P.nearZero * swing;
+  const ago = cross ? n - cross.i : null;
+  return {
+    macd: mL, signal: gL, hist: hL, ppo: 100 * mL / sL, histPct: 100 * hL / price,
+    aboveSig: hL > 0, aboveZero: mL > 0, histRising: hL > m[n - 1] - sig[n - 1],
+    crossUp: cross ? cross.up : null, crossAgo: ago, nearZero,
+    freshCross: !!cross && cross.up && ago <= 2 && nearZero
+  };
+}
 function adxInfo(ch) {
   if (!ch || !ch.c || ch.adx == null) return null;
   return { adx: ch.adx, rising: ch.adxPrev != null && ch.adx > ch.adxPrev, up: ch.pdi > ch.mdi, pdi: ch.pdi, mdi: ch.mdi };
@@ -727,6 +801,7 @@ function state(sym, iv) {
   if (S.mode === 'rr') { const su = setup(ch, t.price); return su ? { rr: su.rr, su } : null; }
   if (S.mode === 'pump') return pumpInfo(ch, t.price);
   if (S.mode === 'adx') return adxInfo(ch);
+  if (S.mode === 'macd') return macdInfo(ch, t.price);
   return lineInfo(ch, t.price, S.mode);
 }
 
@@ -753,6 +828,7 @@ function fmtVol(v) {
 }
 const fmtPct = p => (p >= 0 ? '+' : '−') + Math.abs(p).toFixed(2) + '%';
 const fmtRR = r => r >= 10 ? r.toFixed(0) : r.toFixed(1);
+const fmtSigned = v => (v < 0 ? '−' : '+') + (Math.abs(v) < 1e-12 ? '0' : compact(Math.abs(v), 4));
 function fmtDur(ms) {
   const m = Math.max(0, Math.round(ms / 60000));
   if (m < 1) return 'under 1 min';
@@ -819,17 +895,38 @@ function cellADX(s, iv) {
   return `<div class="c${s.up && s.rising ? ' hot' : ''}" data-iv="${iv}" style="background:rgba(${rgb},${(0.07 + a * 0.55).toFixed(3)});color:${color}">`
     + `${s.adx.toFixed(1)}<small>${s.rising ? 'rising' : 'falling'}</small></div>`;
 }
-// Pump and ADX tabs rank and filter on one timeframe: the one being sorted
-function momSort() { return S.mode === 'pump' ? S.pumpSort : S.adxSort; }
+function cellMACD(s, iv) {
+  if (!s) return `<div class="c na" data-iv="${iv}">–</div>`;
+  const p = s.ppo, abs = Math.abs(p), a = Math.min(abs / MACD_SCALE[iv], 1);
+  const rgb = s.aboveSig ? '52,209,166' : '255,110,122';
+  const color = a > 0.55 ? '#fff' : s.aboveSig ? 'var(--up)' : 'var(--down)';
+  const num = abs >= 10 ? abs.toFixed(1) : abs.toFixed(2);
+  const cap = s.freshCross ? 'new cross' : s.histRising ? 'hist ↑' : 'hist ↓';
+  return `<div class="c${s.freshCross ? ' hot' : ''}" data-iv="${iv}" style="background:rgba(${rgb},${(0.07 + a * 0.55).toFixed(3)});color:${color}">`
+    + `${p >= 0 ? '+' : '−'}${num}%<small>${cap}</small></div>`;
+}
+// Pump, ADX and MACD tabs rank and filter on one timeframe: the one being sorted
+const isMom = () => MOM.includes(S.mode);
+function momSort() { return S[S.mode + 'Sort']; }
 function defaultMomIv(mode) {
-  const pref = mode === 'pump' ? '15m' : '4h';
+  const pref = { pump: '15m', adx: '4h', macd: '1h' }[mode];
   return S.ivs.includes(pref) ? pref : mode === 'pump' ? S.ivs[S.ivs.length - 1] : S.ivs[0];
 }
 function fixMomSorts() {          // keep each tab's ranking timeframe among the selected ones
-  if (!S.ivs.includes(S.pumpSort.iv)) S.pumpSort = { by: 'val', iv: defaultMomIv('pump'), dir: -1 };
-  if (!S.ivs.includes(S.adxSort.iv)) S.adxSort = { by: 'val', iv: defaultMomIv('adx'), dir: -1 };
+  for (const m of MOM) if (!S.ivs.includes(S[m + 'Sort'].iv)) S[m + 'Sort'] = { by: 'val', iv: defaultMomIv(m), dir: -1 };
+}
+function momValue(s, by) {
+  if (!s) return null;
+  if (S.mode === 'pump') return by === 'rvol' ? s.rvol : s.pct;
+  if (S.mode === 'macd') return by === 'hist' ? s.histPct : s.ppo;
+  return s.adx;
 }
 function momPass(s) {
+  if (S.mode === 'macd') {
+    const f = S.macdF;
+    if (!f.sig && !f.zero && !f.hist && !f.cross) return true;
+    return !!s && (!f.sig || s.aboveSig) && (!f.zero || s.aboveZero) && (!f.hist || s.histRising) && (!f.cross || s.freshCross);
+  }
   if (S.mode === 'pump') {
     const f = S.pumpFilter;
     if (f === 'all' && !S.minPump) return true;
@@ -847,7 +944,7 @@ function rrPass(s) {
 }
 
 function render() {
-  const list = universe(), ivs = S.ivs, rr = S.mode === 'rr', mom = S.mode === 'pump' || S.mode === 'adx';
+  const list = universe(), ivs = S.ivs, rr = S.mode === 'rr', mom = isMom();
   if (S.sort.by !== 'vol' && !ivs.includes(S.sort.iv)) S.sort = { by: 'vol', iv: '', dir: -1 };
   fixMomSorts();
   if (!['best', 'vol'].includes(S.rrSort.iv) && !ivs.includes(S.rrSort.iv)) S.rrSort = { iv: 'best', dir: -1 };
@@ -863,10 +960,10 @@ function render() {
   const q = S.q.trim().toUpperCase();
   if (q) rows = rows.filter(r => r.base.includes(q));
   if (mom) {
-    const so = momSort(), ref = so.iv, pump = S.mode === 'pump';
+    const so = momSort(), ref = so.iv;
     rows = rows.filter(r => momPass(r.st[ref]));
     if (so.by !== 'vol') {
-      const val = r => { const s = r.st[ref]; return !s ? null : so.by === 'rvol' ? s.rvol : pump ? s.pct : s.adx; };
+      const val = r => momValue(r.st[ref], so.by);
       rows.sort((a, b) => {
         const x = val(a), y = val(b);
         return (x == null || y == null) ? (x == null) - (y == null) : so.dir * (x - y);
@@ -903,6 +1000,7 @@ function render() {
   if (q) empty = `No ${QUOTE} pair matches “${esc(S.q.trim())}”.`;
   else if (list.length && S.mode === 'pump') empty = `Nothing matches this filter on ${LABEL[S.pumpSort.iv]} right now.`;
   else if (list.length && S.mode === 'adx') empty = `No trend matches this filter on ${LABEL[S.adxSort.iv]} right now.`;
+  else if (list.length && S.mode === 'macd') empty = `No token passes these MACD filters on ${LABEL[S.macdSort.iv]} right now.`;
   else if (list.length && rr) empty = S.rrFilter === 'rboth' ? 'No token is testing the EMA 25 and a trendline together right now.'
     : S.rrFilter === 'rtest' ? 'No token is testing a support right now.' : `No setup with R:R of ${S.minRR} or more right now.`;
   else if (list.length && S.filter !== 'all') {
@@ -911,7 +1009,7 @@ function render() {
       : S.filter === 'test' ? `No token is sitting on ${line} support with ${min}+ bounces right now.`
       : `No ${line} support with ${min}+ bounces is breaking right now.`;
   }
-  const cellFn = { rr: cellRR, pump: cellPump, adx: cellADX }[S.mode] || cell;
+  const cellFn = { rr: cellRR, pump: cellPump, adx: cellADX, macd: cellMACD }[S.mode] || cell;
   $('list').innerHTML = rows.length
     ? rows.map(r => `<div class="row" role="button" tabindex="0" data-sym="${r.sym}" aria-label="${esc(r.base)} chart">`
         + `<div class="tok"><b>${esc(r.base)}</b><span>${fmtPrice(r.price)}</span><span>Vol ${fmtVol(r.vol)}</span></div>`
@@ -924,15 +1022,15 @@ function render() {
 let headKey = '';
 function renderHeader() {
   fixMomSorts();
-  const rr = S.mode === 'rr', mom = S.mode === 'pump' || S.mode === 'adx', so = S.sort, rs = S.rrSort, ms = momSort();
+  const rr = S.mode === 'rr', mom = isMom(), so = S.sort, rs = S.rrSort, ms = mom ? momSort() : null;
   const key = [S.ivs.join(), S.mode, so.by, so.iv, so.dir, rs.iv, rs.dir, S.filter, S.rrFilter,
     S.minB.ema, S.minB.tl, S.minRR, JSON.stringify(S.pumpSort), JSON.stringify(S.adxSort),
-    S.pumpFilter, S.adxFilter, S.minPump, S.minAdx].join('|');
+    JSON.stringify(S.macdSort), JSON.stringify(S.macdF), S.pumpFilter, S.adxFilter, S.minPump, S.minAdx].join('|');
   if (key === headKey) return;
   headKey = key;
   const arrow = d => d < 0 ? ' ↓' : ' ↑';
   const on = iv => mom ? ms.iv === iv : rr ? rs.iv === iv : (so.by !== 'vol' && so.iv === iv);
-  const mark = iv => !on(iv) ? '' : mom ? (ms.by === 'vol' ? '' : ms.by === 'rvol' ? ' ×' : arrow(ms.dir))
+  const mark = iv => !on(iv) ? '' : mom ? (ms.by === 'vol' ? '' : ms.by === 'rvol' ? ' ×' : arrow(ms.by === 'hist' ? -1 : ms.dir))
     : rr ? arrow(rs.dir) : so.by === 'b' ? ' ×' : arrow(so.dir);
   const tokOn = mom ? ms.by === 'vol' : rr ? rs.iv === 'vol' : so.by === 'vol';
   $('cols').innerHTML = `<button data-k="vol" class="${tokOn ? 'on' : ''}">Token${tokOn ? ' ↓' : ''}</button>`
@@ -943,7 +1041,12 @@ function renderHeader() {
   const fb = (f, label, cur) => `<button data-f="${f}" aria-pressed="${f === cur}">${label}</button>`;
   const picker = (label, aria, options, cur, text) => `<label class="pick"><span>${label}</span><select id="minPick" aria-label="${aria}">`
     + options.map(v => `<option value="${v}" ${v === cur ? 'selected' : ''}>${text(v)}</option>`).join('') + '</select></label>';
-  if (S.mode === 'pump') {
+  if (S.mode === 'macd') {
+    const mf = (k, label) => `<button data-mf="${k}" aria-pressed="${S.macdF[k]}">${label}</button>`;
+    $('filter').innerHTML = mf('sig', 'Above signal') + mf('zero', 'Above 0') + mf('hist', 'Hist rising')
+      + mf('cross', '<i class="sw box"></i>New cross')
+      + picker(LABEL[ms.iv], 'Timeframe for MACD filters and ranking', S.ivs, ms.iv, v => `Filter and rank on ${LABEL[v]}`);
+  } else if (S.mode === 'pump') {
     $('filter').innerHTML = fb('all', 'All', S.pumpFilter) + fb('up', 'Rising', S.pumpFilter)
       + fb('vol', '<i class="sw box"></i>With volume', S.pumpFilter)
       + picker(S.minPump ? `≥ +${S.minPump}%` : 'Any rise', 'Minimum rise', PUMP_MIN_OPTIONS, S.minPump,
@@ -969,7 +1072,13 @@ function renderHeader() {
   }
 
   const group = (label, fn) => `<optgroup label="${label}">${S.ivs.map(iv => `<option value="${fn(iv)}">${LABEL[iv]}</option>`).join('')}</optgroup>`;
-  if (mom) {
+  if (S.mode === 'macd') {
+    $('sort').innerHTML = group('Highest PPO first', iv => `val:${iv}:-1`) + group('Lowest PPO first', iv => `val:${iv}:1`)
+      + group('Furthest above signal first', iv => `hist:${iv}:-1`) + `<option value="vol:${ms.iv}:-1">24h volume</option>`;
+    $('sort').value = ms.by === 'vol' ? `vol:${ms.iv}:-1` : `${ms.by}:${ms.iv}:${ms.by === 'hist' ? -1 : ms.dir}`;
+    $('sortLabel').textContent = ms.by === 'vol' ? 'Volume' : ms.by === 'hist' ? `Hist ${LABEL[ms.iv]}${arrow(-1)}`
+      : `PPO ${LABEL[ms.iv]}${arrow(ms.dir)}`;
+  } else if (mom) {
     const pump = S.mode === 'pump';
     $('sort').innerHTML = (pump
       ? group('Fastest rise first', iv => `val:${iv}:-1`) + group('Biggest drop first', iv => `val:${iv}:1`)
@@ -994,7 +1103,7 @@ function renderHeader() {
     $('sortLabel').textContent = so.by === 'vol' ? 'Volume' : so.by === 'b' ? `Bounces ${LABEL[so.iv]}`
       : `${LABEL[so.iv]} %${arrow(so.dir)}`;
   }
-  document.title = { ema: 'EMA 25 distance', tl: 'Trendline distance', rr: 'Reward to risk', pump: 'Pumping now', adx: 'Trend strength (ADX)' }[S.mode];
+  document.title = { ema: 'EMA 25 distance', tl: 'Trendline distance', rr: 'Reward to risk', pump: 'Pumping now', adx: 'Trend strength (ADX)', macd: 'MACD momentum' }[S.mode];
 }
 
 function coverage() {
@@ -1083,17 +1192,20 @@ function renderDetail() {
   for (const b of $('dLegend').querySelectorAll('button')) b.setAttribute('aria-pressed', String(S.show[b.dataset.show]));
   const ready = t && ch && ch.c;
   $('chart').innerHTML = ready ? drawChart(ch, t.price, iv) : '<div class="cmsg">Loading chart…</div>';
+  $('macdChart').innerHTML = ready && S.show.macd ? drawMACD(ch, t.price) : '';
   $('dFacts').innerHTML = ready ? facts(ch, t.price, sym, iv) : '';
-  let rows = '<tr><th>TF</th><th>Trendline</th><th>EMA 25</th><th>R:R</th><th>ADX</th></tr>';
+  let rows = '<tr><th>TF</th><th>Trendline</th><th>EMA 25</th><th>R:R</th><th>ADX</th><th>MACD</th></tr>';
   for (const x of ALL_IVS) {
     const c = S.charts.get(sym + '|' + x);
     const tl = t && lineInfo(c, t.price, 'tl'), em = t && lineInfo(c, t.price, 'ema'), su = t && setup(c, t.price);
-    const val = (r, word) => r ? `${fmtExact(r.ref, sym)}<small>${fmtPct(r.pct)}, ×${r.b} ${word}</small>`
+    const val = r => r ? `${fmtExact(r.ref, sym)}<small>${fmtPct(r.pct)}, ×${r.b}</small>`
       : `–<small>${c && c.c ? 'none' : 'loading'}</small>`;
     const rr = su ? `${fmtRR(su.rr)}<small>${zoneName(su)}</small>` : '–<small>&nbsp;</small>';
     const ax = adxInfo(c);
     const adx = ax ? `<span class="${ax.up ? 'up' : 'dn'}">${ax.adx.toFixed(0)}</span><small>${ax.rising ? 'rising' : 'falling'}</small>` : '–<small>&nbsp;</small>';
-    rows += `<tr data-iv="${x}" class="${x === iv ? 'on' : ''}"><td>${LABEL[x]}</td><td>${val(tl, 'touches')}</td><td>${val(em, 'bounces')}</td><td>${rr}</td><td>${adx}</td></tr>`;
+    const mi = t && macdInfo(c, t.price);
+    const macdCell = mi ? `<span class="${mi.aboveSig ? 'up' : 'dn'}">${fmtPct(mi.ppo)}</span><small>${mi.freshCross ? 'new cross' : mi.histRising ? 'hist ↑' : 'hist ↓'}</small>` : '–<small>&nbsp;</small>';
+    rows += `<tr data-iv="${x}" class="${x === iv ? 'on' : ''}"><td>${LABEL[x]}</td><td>${val(tl)}</td><td>${val(em)}</td><td>${rr}</td><td>${adx}</td><td>${macdCell}</td></tr>`;
   }
   $('dTable').innerHTML = rows;
 }
@@ -1153,9 +1265,18 @@ function facts(ch, price, sym, iv) {
     row(momRows, 'ADX (14)', `${ax.adx.toFixed(1)}, ${ax.rising ? 'rising' : 'falling'}`);
     row(momRows, 'Trend', `${ax.up ? 'Up' : 'Down'} (+DI ${ax.pdi.toFixed(1)}, −DI ${ax.mdi.toFixed(1)})`);
   } else row(momRows, 'ADX (14)', 'not enough candles yet');
+  const mi = macdInfo(ch, price);
+  if (mi) {
+    row(momRows, 'MACD', `${mi.aboveSig ? 'Above' : 'Below'} signal, histogram ${mi.histRising ? 'rising' : 'falling'}`);
+    row(momRows, 'MACD / signal', `${fmtSigned(mi.macd)} / ${fmtSigned(mi.signal)}`);
+    row(momRows, 'Histogram', fmtSigned(mi.hist));
+    row(momRows, 'PPO', `${fmtPct(mi.ppo)}, ${mi.aboveZero ? 'above' : 'below'} zero`);
+    row(momRows, 'Last cross', mi.crossAgo == null ? 'none in view'
+      : `${mi.crossUp ? 'Bullish' : 'Bearish'}, ${mi.crossAgo === 0 ? 'this candle' : `${mi.crossAgo} candle${mi.crossAgo > 1 ? 's' : ''} ago`}${mi.nearZero ? ', near zero' : ''}`);
+  } else row(momRows, 'MACD', 'not enough candles yet');
   const sep = '<div class="sep"></div>';
   const order = S.mode === 'rr' ? [setupRows, lineRows, momRows]
-    : S.mode === 'pump' || S.mode === 'adx' ? [momRows, lineRows, setupRows] : [lineRows, setupRows, momRows];
+    : isMom() ? [momRows, lineRows, setupRows] : [lineRows, setupRows, momRows];
   return order.map(r => r.join('')).join(sep);
 }
 
@@ -1239,6 +1360,43 @@ function drawChart(ch, price, iv) {
   return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${LABEL[iv]} candle chart">${g}</svg>`;
 }
 
+// MACD panel under the candle chart: histogram, MACD line and signal line, aligned with the candles above
+function drawMACD(ch, price) {
+  const info = macdInfo(ch, price);
+  if (!info) return '<div class="cmsg sm">Not enough candles for MACD on this timeframe yet.</div>';
+  const W = Math.max(280, Math.round($('chart').clientWidth || 350)), H = 110;
+  const R = 64, T = 6, B = 6, PW = W - R;
+  const n = ch.c.length, slots = n + 4, dx = PW / slots, X = i => (i + 0.5) * dx;
+  const { m, sig } = ch.macd;
+  const M = i => i === n ? info.macd : m[i], G = i => i === n ? info.signal : sig[i], Hh = i => M(i) - G(i);
+  const first = sig.findIndex(v => v != null);
+  let lo = 0, hi = 0;
+  for (let i = first; i <= n; i++) { lo = Math.min(lo, M(i), G(i), Hh(i)); hi = Math.max(hi, M(i), G(i), Hh(i)); }
+  const pad = (hi - lo) * 0.08 || 1e-12;
+  lo -= pad; hi += pad;
+  const Y = v => T + (hi - v) / (hi - lo) * (H - T - B), r1 = v => v.toFixed(1), y0 = Y(0);
+  let g = `<line class="g-zero" x1="0" x2="${PW}" y1="${r1(y0)}" y2="${r1(y0)}"/>`
+    + `<text class="g-mlab" x="${PW + 5}" y="${r1(y0 + 3)}">0</text><text class="g-mlab" x="4" y="${T + 9}">MACD 12, 26, 9</text>`;
+  const bw = Math.max(1, dx * 0.64);
+  for (let i = first; i <= n; i++) {                 // histogram: brighter while it grows in its direction
+    const h = Hh(i), prev = i > first ? Hh(i - 1) : h, grow = h >= 0 ? h >= prev : h <= prev;
+    const top = Math.min(Y(h), y0), ht = Math.max(1, Math.abs(Y(h) - y0));
+    g += `<rect class="${h >= 0 ? 'g-hu' : 'g-hd'}" opacity="${grow ? 0.9 : 0.45}" x="${r1(X(i) - bw / 2)}" y="${r1(top)}" width="${r1(bw)}" height="${r1(ht)}"/>`;
+  }
+  const line = fn => { const pts = []; for (let i = first; i <= n; i++) pts.push(`${r1(X(i))},${r1(Y(fn(i)))}`); return pts.join(' '); };
+  g += `<polyline class="g-macd" points="${line(M)}"/><polyline class="g-sig" points="${line(G)}"/>`;
+  const tags = [{ v: info.macd, cls: 't-macd' }, { v: info.signal, cls: 't-sig' }].map(tg => Object.assign(tg, { y: Y(tg.v) }));
+  tags.sort((a, b) => a.y - b.y);
+  tags[0].y = Math.max(tags[0].y, T + 8);
+  tags[1].y = Math.min(Math.max(tags[1].y, tags[0].y + 17), H - 8);
+  if (tags[1].y - tags[0].y < 17) tags[0].y = tags[1].y - 17;
+  for (const tg of tags) {
+    g += `<rect class="${tg.cls}" x="${PW + 2}" y="${r1(tg.y - 8)}" width="${R - 3}" height="16" rx="3"/>`
+      + `<text class="g-tagt" x="${PW + 5}" y="${r1(tg.y + 3.5)}">${fmtSigned(tg.v)}</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="MACD chart">${g}</svg>`;
+}
+
 // ---------- Events ----------
 function settingsChanged() { savePrefs(); layout(); renderSettings(); schedule(); render(); }
 
@@ -1270,6 +1428,10 @@ $('mode').addEventListener('click', e => {
 });
 $('filter').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
+  if (S.mode === 'macd') {                    // MACD filters can be combined
+    if (b.dataset.mf) S.macdF[b.dataset.mf] = !S.macdF[b.dataset.mf];
+    savePrefs(); render(); return;
+  }
   if (S.mode === 'rr') S.rrFilter = b.dataset.f;
   else if (S.mode === 'pump') S.pumpFilter = b.dataset.f;
   else if (S.mode === 'adx') S.adxFilter = b.dataset.f;
@@ -1278,7 +1440,8 @@ $('filter').addEventListener('click', e => {
 });
 $('filter').addEventListener('change', e => {
   if (e.target.id !== 'minPick') return;
-  if (S.mode === 'rr') S.minRR = +e.target.value;
+  if (S.mode === 'macd') S.macdSort = Object.assign({}, S.macdSort, { iv: e.target.value });
+  else if (S.mode === 'rr') S.minRR = +e.target.value;
   else if (S.mode === 'pump') S.minPump = +e.target.value;
   else if (S.mode === 'adx') S.minAdx = +e.target.value;
   else S.minB[S.mode] = +e.target.value;
@@ -1287,15 +1450,15 @@ $('filter').addEventListener('change', e => {
 $('sort').addEventListener('change', e => {
   const v = e.target.value.split(':');
   if (S.mode === 'rr') S.rrSort = { iv: v[0], dir: v[0] === 'vol' ? -1 : +v[1] };
-  else if (S.mode === 'pump' || S.mode === 'adx') S[S.mode === 'pump' ? 'pumpSort' : 'adxSort'] = { by: v[0], iv: v[1], dir: +v[2] };
+  else if (isMom()) S[S.mode + 'Sort'] = { by: v[0], iv: v[1], dir: +v[2] };
   else S.sort = v[0] === 'vol' ? { by: 'vol', iv: '', dir: -1 } : { by: v[0], iv: v[1], dir: v[0] === 'pct' ? +v[2] : -1 };
   savePrefs(); render(); window.scrollTo({ top: 0 });
 });
 $('cols').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const k = b.dataset.k;
-  if (S.mode === 'pump' || S.mode === 'adx') {
-    const key = S.mode === 'pump' ? 'pumpSort' : 'adxSort', so = S[key];
+  if (isMom()) {
+    const key = S.mode + 'Sort', so = S[key];
     if (k === 'vol') S[key] = so.by === 'vol' ? { by: 'val', iv: so.iv, dir: -1 } : { by: 'vol', iv: so.iv, dir: -1 };
     else if (so.iv === k && so.by === 'val') so.dir *= -1;
     else S[key] = { by: 'val', iv: k, dir: -1 };
@@ -1318,7 +1481,7 @@ function rowTap(e) {
   const row = e.target.closest('.row'); if (!row) return;
   const c = e.target.closest('[data-iv]');
   const def = S.mode === 'rr' ? (ALL_IVS.includes(S.rrSort.iv) ? S.rrSort.iv : bestIv(row.dataset.sym))
-    : S.mode === 'pump' || S.mode === 'adx' ? momSort().iv : S.sort.iv;
+    : isMom() ? momSort().iv : S.sort.iv;
   openDetail(row.dataset.sym, c ? c.dataset.iv : (def || S.ivs[0]));
 }
 function bestIv(sym) {
