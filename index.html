@@ -12,7 +12,7 @@
 <style>
 :root{
   --ink:#131A2B; --panel:#1B2440; --line:#2A3558; --text:#E8EBF4; --muted:#8C96B3;
-  --up:#34D1A6; --down:#FF6E7A; --gold:#F0B90B; --ema:#A99BFF; --macd:#5B9CFF; --sig:#FF9F43;
+  --up:#34D1A6; --down:#FF6E7A; --gold:#F0B90B; --ema:#A99BFF; --macd:#5B9CFF; --sig:#FF9F43; --res:#FF8FA3;
   --n:6; --tok:1.1fr; --fs:11.5px; --tfs:14px;
 }
 *{box-sizing:border-box}
@@ -92,6 +92,7 @@ main{padding:4px 12px 16px}
 .c.hold::after,.c.test::after{content:"";position:absolute;left:3px;right:3px;bottom:2px;height:3px;
   border-radius:2px;background:var(--gold)}
 .c.test,.c.rtest,.c.hot{box-shadow:inset 0 0 0 1.5px var(--gold)}
+.c.ceil::before{content:"";position:absolute;left:3px;right:3px;top:2px;height:2px;border-radius:2px;background:var(--res)}
 .c.brk::after{content:"";position:absolute;left:3px;right:3px;bottom:2px;border-bottom:2px dashed var(--down)}
 .empty{color:var(--muted);text-align:center;padding:40px 12px;font-size:14px;line-height:1.5}
 footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;max-width:70ch}
@@ -159,6 +160,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 .facts dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
 .facts dd.big{font-size:17px;color:var(--gold)}
 .facts dd.big.ema{color:var(--ema)}
+.facts dd.big.res{color:var(--res)}
 .facts dd.big.rr{color:var(--up)}
 .facts dd.pass{color:var(--up)}
 .c.sc{font-size:12.5px}
@@ -189,6 +191,9 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 .g-tl{stroke:var(--gold);stroke-width:1.75;fill:none}
 .g-proj{stroke-dasharray:4 3}
 .g-touch{fill:var(--ink);stroke:var(--gold);stroke-width:1.75}
+.g-res{stroke:var(--res);stroke-width:1.75;fill:none}
+.g-rtouch{fill:var(--ink);stroke:var(--res);stroke-width:1.75}
+.t-res{fill:var(--res)}
 .g-pl{stroke-width:1;stroke-dasharray:2 3;fill:none}
 .g-tg{stroke:var(--up);stroke-width:1.25;stroke-dasharray:6 4}
 .g-sl{stroke:var(--down);stroke-width:1.25;stroke-dasharray:6 4}
@@ -266,6 +271,11 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
     of them over the last 100 candles, and throws out any line a candle has closed below. The line with the most
     touches is used. Every touch counts as a bounce, including the two lows that form the line, so 3 or more is
     a confirmed trendline. A dash means no rising trendline was found on that timeframe.</p>
+  <h3>Resistance trendline</h3>
+  <p>Resistance is found the same way, flipped upside down: the app finds swing highs (the highest high among 3
+    candles on each side), tries every line through two of them, rising, flat or falling, and throws out any line a
+    candle has closed above. The line with the most touches is used, and it needs at least your Trendline minimum
+    touches to count. Tap a token to see it on the chart in pink.</p>
   <h3>Markers</h3>
   <p>A gold line under a cell means support is holding, and the number is how many bounces it has had. A gold box
     means price is sitting on the support right now. A red dashed line means price has dropped below a support
@@ -275,10 +285,12 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
     EMA 25 and Trendline tabs. If the EMA 25 and the trendline are within half a normal candle's range of each
     other, they count as one support zone ("Both") and the history of both lines is used.</p>
   <p>Entry is the current price. The stop sits half a normal candle's range below the support (below the lower
-    line for a zone). The target is the support plus the median size of its past bounces, where each bounce is
-    the highest price reached within 20 candles of an earlier test, or before the next test. R:R is
-    (target − entry) ÷ (entry − stop). A dash means there's no support below price; 0 means price has already
-    risen past the typical bounce.</p>
+    line for a zone). The target is selling at the resistance trendline above the price, if there is one. If there
+    isn't (or price has already broken above it), the target is the support plus the median size of its past
+    bounces, where each bounce is the highest price reached within 20 candles of an earlier test, or before the
+    next test. A pink line at the top of an R:R cell means the target is a resistance trendline. R:R is
+    (target − entry) ÷ (entry − stop). A dash means there's no support below price; 0 means price is already at
+    the target.</p>
   <p>Setups where price is testing the support now score highest, because the stop is close. The chart for each
     token shows the stop and target lines. Past bounces don't guarantee future ones.</p>
   <h3>Pump tab</h3>
@@ -330,6 +342,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
   <div class="mchart" id="macdChart"></div>
   <div class="legend" id="dLegend">
     <button data-show="tl" aria-pressed="true"><i style="background:var(--gold)"></i>Trendline</button>
+    <button data-show="res" aria-pressed="true"><i style="background:var(--res)"></i>Resistance</button>
     <button data-show="ema" aria-pressed="true"><i style="background:var(--ema)"></i>EMA 25</button>
     <button data-show="rr" aria-pressed="true"><i class="split"></i>Target and stop</button>
     <button data-show="macd" aria-pressed="true"><i class="mac"></i>MACD</button>
@@ -406,7 +419,7 @@ const S = {
   macdF: { sig: true, zero: false, hist: false, cross: false, tfs: [] },
   pumpFilter: 'all', adxFilter: 'up', minPump: 0, minAdx: 0,
   scalpFilter: '3plus', scalpTop: 50, scalpSort: 'score',
-  detail: null, show: { tl: true, ema: true, rr: true, macd: true },
+  detail: null, show: { tl: true, res: true, ema: true, rr: true, macd: true },
   lastUpdate: 0, nextAt: 0, tickErr: '', busy: false
 };
 try {
@@ -434,7 +447,7 @@ try {
     S.sort = { by: p.sort.by, iv: p.sort.iv || '', dir: p.sort.dir === 1 ? 1 : -1 };
   if (p.rrSort && (['best', 'vol'].includes(p.rrSort.iv) || ALL_IVS.includes(p.rrSort.iv)))
     S.rrSort = { iv: p.rrSort.iv, dir: p.rrSort.dir === 1 ? 1 : -1 };
-  if (p.show) S.show = { tl: p.show.tl !== false, ema: p.show.ema !== false, rr: p.show.rr !== false, macd: p.show.macd !== false };
+  if (p.show) S.show = { tl: p.show.tl !== false, res: p.show.res !== false, ema: p.show.ema !== false, rr: p.show.rr !== false, macd: p.show.macd !== false };
   if (p.macdF) {
     for (const k of ['sig', 'zero', 'hist', 'cross']) if (typeof p.macdF[k] === 'boolean') S.macdF[k] = p.macdF[k];
     if (Array.isArray(p.macdF.tfs)) S.macdF.tfs = ALL_IVS.filter(iv => p.macdF.tfs.includes(iv));
@@ -577,6 +590,61 @@ function findTrendline(ch) {
   return best;
 }
 
+// Best resistance line through two swing highs (rising, flat or falling) that no candle has closed above.
+// Returns { a, ya, s, touches } where the line is y(i) = ya + s * (i - a).
+function findResistance(ch) {
+  const n = ch.c.length, Hh = ch.h, C = ch.c, atr = ch.atr, P = SUP.pivot;
+  if (!(atr > 0) || n < 2 * P + 5) return null;
+  const piv = [];
+  for (let i = P; i < n - P; i++) {
+    let high = true;
+    for (let j = i - P; j <= i + P; j++) if (Hh[j] > Hh[i]) { high = false; break; }
+    if (high) piv.push(i);
+  }
+  const touchTol = SUP.touch * atr, breakTol = SUP.breakTol * atr, wickTol = SUP.wickTol * atr;
+  let best = null;
+  for (let x = 0; x < piv.length; x++) {
+    const a = piv[x];
+    for (let y = x + 1; y < piv.length; y++) {
+      const b = piv[y], s = (Hh[b] - Hh[a]) / (b - a);
+      let touches = 0, touching = false, last = a, ok = true;
+      for (let i = a; i < n; i++) {
+        const v = Hh[a] + s * (i - a);
+        if (C[i] > v + breakTol || Hh[i] > v + wickTol) { ok = false; break; }
+        const t = Hh[i] >= v - touchTol;
+        if (t && !touching) { touches++; last = i; }
+        touching = t;
+      }
+      if (!ok) continue;
+      if (!best || touches > best.touches || (touches === best.touches && (last > best.last || (last === best.last && a < best.a))))
+        best = { a, ya: Hh[a], s, touches, last };
+    }
+  }
+  return best;
+}
+// Candle index of each touch of the resistance line (the closest candle of each touch), for drawing
+function resEvents(ch, r) {
+  const tol = SUP.touch * ch.atr, ev = [];
+  let touching = false, gap = Infinity;
+  for (let i = r.a; i < ch.c.length; i++) {
+    const v = r.ya + r.s * (i - r.a), t = ch.h[i] >= v - tol, g = Math.abs(ch.h[i] - v);
+    if (t && !touching) { ev.push(i); gap = g; }
+    else if (t && g < gap) { ev[ev.length - 1] = i; gap = g; }
+    touching = t;
+  }
+  return ev;
+}
+// Where the resistance line is now (at the candle still forming) and how price sits against it
+function resInfo(ch, price) {
+  const r = ch && ch.res;
+  if (!r || !(ch.atr > 0)) return null;
+  const ref = r.ya + r.s * (ch.c.length - r.a);
+  if (!(ref > 0)) return null;
+  const d = (price - ref) / ch.atr;
+  return { ref, touches: r.touches, ok: r.touches >= S.minB.tl, pct: (price - ref) / ref * 100,
+    state: d > SUP.breakTol ? 'broken' : d >= -SUP.testZone ? 'testing' : 'below' };
+}
+
 // Every test of a support line since `from`, and how far price bounced after each one.
 // A bounce = highest high within RR.horizon candles of the test (or before the next test), as a % of the line.
 function history(ch, from, lineAt) {
@@ -605,7 +673,7 @@ function history(ch, from, lineAt) {
 function derive(ch) {
   const n = ch.c.length, e = ch.e;
   ch.ema = n ? e[n - 1] : null; ch.atr = 0; ch.bounces = 0; ch.rising = false;
-  ch.tl = null; ch.tlH = null; ch.emaH = null;
+  ch.tl = null; ch.tlH = null; ch.emaH = null; ch.res = null; ch.resH = null;
   let tr = 0, m = 0;
   for (let i = Math.max(1, n - 14); i < n; i++) {
     tr += Math.max(ch.h[i] - ch.l[i], Math.abs(ch.h[i] - ch.c[i - 1]), Math.abs(ch.l[i] - ch.c[i - 1]));
@@ -617,6 +685,8 @@ function derive(ch) {
   if (!(ch.atr > 0)) return;
   const tl = ch.tl = findTrendline(ch);
   if (tl) ch.tlH = history(ch, tl.a, i => tl.ya + tl.s * (i - tl.a));
+  ch.res = findResistance(ch);
+  if (ch.res) ch.resH = resEvents(ch, ch.res);
   if (ch.ema == null) return;
   // EMA support: dips since the last close below the EMA
   const firstE = e.findIndex(v => v != null);
@@ -834,11 +904,16 @@ function setup(ch, price) {
     bounces.push(...z.hist.done);
     if (z.sup === 'test' && z.hist.last != null) bounces.push(z.hist.last);  // price came back, so that bounce is complete
   }
-  if (!bounces.length) return null;
-  const med = median(bounces);
-  const stop = low - RR.stopBuf * ch.atr, target = top * (1 + med);
+  const med = bounces.length ? median(bounces) : null;
+  // Target: sell at the resistance trendline above if there is a confirmed one that price hasn't broken,
+  // otherwise the support plus its median past bounce
+  const res = resInfo(ch, price);
+  const useRes = !!res && res.ok && res.state !== 'broken' && res.ref > top;
+  if (!useRes && med == null) return null;
+  const stop = low - RR.stopBuf * ch.atr, target = useRes ? res.ref : top * (1 + med);
   const risk = price - stop, reward = target - price;
   return { rr: reward > 0 && risk > 0 ? reward / risk : 0, entry: price, stop, target, med, n: bounces.length,
+    targetFrom: useRes ? 'res' : 'bounce', res: useRes ? res : null,
     top, low, both: zone.length === 2, testing, kinds: zone.map(z => z.kind) };
 }
 
@@ -909,7 +984,7 @@ function cellRR(s, iv) {
   const rr = s.rr, good = rr >= 1, a = Math.min(rr / 5, 1);
   const bg = good ? `rgba(52,209,166,${(0.07 + a * 0.55).toFixed(3)})` : 'rgba(140,150,179,.08)';
   const color = !good ? 'var(--muted)' : a > 0.55 ? '#fff' : 'var(--up)';
-  return `<div class="c${s.su.testing ? ' rtest' : ''}" data-iv="${iv}" style="background:${bg};color:${color}">`
+  return `<div class="c${s.su.testing ? ' rtest' : ''}${s.su.targetFrom === 'res' ? ' ceil' : ''}" data-iv="${iv}" style="background:${bg};color:${color}">`
     + `${fmtRR(rr)}<small>${zoneName(s.su)}</small></div>`;
 }
 
@@ -1380,6 +1455,18 @@ function facts(ch, price, sym, iv) {
   } else {
     lineRows.push(`<div class="none">No rising trendline on ${LABEL[iv]} right now. Price may be in a downtrend, or it has closed below every recent line.</div>`);
   }
+  const rs = resInfo(ch, price);
+  lineRows.push('<div class="sep"></div>');
+  if (rs) {
+    const rat = i => ch.res.ya + ch.res.s * (i - ch.res.a);
+    row(lineRows, 'Resistance now', fmtExact(rs.ref, sym), 'big res');
+    row(lineRows, 'Price vs resistance', rs.state === 'broken' ? `${fmtPct(rs.pct)}, broken above`
+      : `${fmtPct(rs.pct)} ${rs.pct >= 0 ? 'above' : 'below'}${rs.state === 'testing' ? ', testing it' : ''}`);
+    row(lineRows, 'Resistance next candle', fmtExact(rat(n + 1), sym));
+    row(lineRows, 'Resistance touches', `×${rs.touches}${rs.ok ? '' : `, needs ×${S.minB.tl}`}`);
+  } else {
+    lineRows.push(`<div class="none">No resistance trendline on ${LABEL[iv]} right now.</div>`);
+  }
   const em = lineInfo(ch, price, 'ema');
   if (em) {
     lineRows.push('<div class="sep"></div>');
@@ -1399,9 +1486,12 @@ function facts(ch, price, sym, iv) {
     row(setupRows, 'Entry (price now)', fmtExact(price, sym));
     row(setupRows, 'Stop', `${fmtExact(su.stop, sym)} (${fmtPct((su.stop - price) / price * 100)})`);
     row(setupRows, 'Target', `${fmtExact(su.target, sym)} (${fmtPct((su.target - price) / price * 100)})`);
+    row(setupRows, 'Target from', su.targetFrom === 'res' ? `Resistance trendline (×${su.res.touches})` : 'Past bounces (no resistance above)');
     row(setupRows, 'Support', where);
-    row(setupRows, 'Past bounces', `${su.n}, median ${fmtPct(su.med * 100)}`);
-    if (!(su.rr > 0)) setupRows.push('<div class="none">Price is already above where past bounces usually peaked, so there is no reward left in this setup.</div>');
+    if (su.med != null) row(setupRows, 'Past bounces', `${su.n}, median ${fmtPct(su.med * 100)}`);
+    if (!(su.rr > 0)) setupRows.push(su.targetFrom === 'res'
+      ? '<div class="none">Price is already at the resistance trendline, so there is no reward left in this setup.</div>'
+      : '<div class="none">Price is already above where past bounces usually peaked, so there is no reward left in this setup.</div>');
     else if (su.testing) setupRows.push('<div class="none">Price is testing this support right now.</div>');
   }
   // momentum
@@ -1436,6 +1526,7 @@ function drawChart(ch, price, iv) {
   const W = Math.max(280, Math.round($('chart').clientWidth || 350)), H = 290;
   const R = 64, T = 8, B = 22, PW = W - R;                // right gutter for price tags
   const n = ch.c.length, tl = ch.tl, showTl = S.show.tl && tl, showEma = S.show.ema && ch.ema != null;
+  const rl = ch.res, showRes = S.show.res && rl, rat = i => rl.ya + rl.s * (i - rl.a);
   const su = S.show.rr ? setup(ch, price) : null, showSu = su && su.rr > 0;
   const f = ch.forming ? { ...ch.forming } : { o: ch.c[n - 1], h: ch.c[n - 1], l: ch.c[n - 1] };
   f.c = price; f.h = Math.max(f.h, price); f.l = Math.min(f.l, price);
@@ -1446,6 +1537,7 @@ function drawChart(ch, price, iv) {
   let lo = Math.min(f.l, ...ch.l), hi = Math.max(f.h, ...ch.h);
   if (showEma) for (const v of ch.e) if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
   if (showTl) { lo = Math.min(lo, at(tl.a)); hi = Math.max(hi, at(n + 1)); }
+  if (showRes) { lo = Math.min(lo, rat(rl.a), rat(n + 1)); hi = Math.max(hi, rat(rl.a), rat(n + 1)); }
   if (showSu) { lo = Math.min(lo, su.stop); hi = Math.max(hi, su.target); }
   const pad = (hi - lo) * 0.06 || hi * 0.01;
   lo -= pad; hi += pad;
@@ -1487,12 +1579,19 @@ function drawChart(ch, price, iv) {
       + `<line class="g-tl g-proj" x1="${r1(X(n))}" y1="${r1(Y(at(n)))}" x2="${r1(X(end))}" y2="${r1(Y(at(end)))}"/>`;
     for (const ev of (ch.tlH ? ch.tlH.events : [])) g += `<circle class="g-touch" cx="${r1(X(ev.idx))}" cy="${r1(Y(at(ev.idx)))}" r="3.2"/>`;
   }
+  if (showRes) {
+    const end = slots - 0.5;
+    g += `<line class="g-res" x1="${r1(X(rl.a))}" y1="${r1(Y(rat(rl.a)))}" x2="${r1(X(n))}" y2="${r1(Y(rat(n)))}"/>`
+      + `<line class="g-res g-proj" x1="${r1(X(n))}" y1="${r1(Y(rat(n)))}" x2="${r1(X(end))}" y2="${r1(Y(rat(end)))}"/>`;
+    for (const i of (ch.resH || [])) g += `<circle class="g-rtouch" cx="${r1(X(i))}" cy="${r1(Y(rat(i)))}" r="3.2"/>`;
+  }
   const up = price >= f.o;
   g += `<line class="g-pl ${up ? 'cu' : 'cd'}" x1="0" x2="${PW}" y1="${r1(Y(price))}" y2="${r1(Y(price))}"/>`;
 
   // price tags on the right, nudged apart so they never overlap
   const tags = [{ v: price, cls: up ? 't-up' : 't-dn' }];
   if (showTl) tags.push({ v: at(n), cls: 't-tl' });
+  if (showRes && !(showSu && su.targetFrom === 'res')) tags.push({ v: rat(n), cls: 't-res' });
   if (showEma) tags.push({ v: emaLive, cls: 't-ema' });
   if (showSu) tags.push({ v: su.target, cls: 't-otg', txt: 'otg' }, { v: su.stop, cls: 't-osl', txt: 'osl' });
   tags.forEach(tg => { tg.y = Y(tg.v); });
