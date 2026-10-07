@@ -195,8 +195,13 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 .g-res{stroke:var(--res);stroke-width:1.75;fill:none}
 .g-rtouch{fill:var(--ink);stroke:var(--res);stroke-width:1.75}
 .g-bo{fill:var(--gold);stroke:var(--ink);stroke-width:1.5}
-.g-bolab{fill:var(--gold);font-size:10px;font-weight:700}
+.g-bolab{fill:var(--gold);font-size:10px;font-weight:700;paint-order:stroke;stroke:var(--ink);stroke-width:3px}
+.g-bd{fill:var(--down);stroke:var(--ink);stroke-width:1.5}
+.g-bdlab{fill:var(--down);font-size:10px;font-weight:700;paint-order:stroke;stroke:var(--ink);stroke-width:3px}
 .c.near{background:rgba(240,185,11,.12);color:var(--gold)}
+.c.cold{box-shadow:inset 0 0 0 1.5px var(--down)}
+.c.back{background:rgba(52,209,166,.1);color:var(--up)}
+.sw.cbox{background:rgba(255,110,122,.3);box-shadow:inset 0 0 0 1.5px var(--down)}
 .t-res{fill:var(--res)}
 .g-pl{stroke-width:1;stroke-dasharray:2 3;fill:none}
 .g-tg{stroke:var(--up);stroke-width:1.25;stroke-dasharray:6 4}
@@ -215,6 +220,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
       <button role="tab" data-m="ema" aria-selected="true">EMA 25</button>
       <button role="tab" data-m="tl" aria-selected="false">Trendline</button>
       <button role="tab" data-m="bo" aria-selected="false">Breakout</button>
+      <button role="tab" data-m="bd" aria-selected="false">Breakdown</button>
       <button role="tab" data-m="rr" aria-selected="false">R:R</button>
       <button role="tab" data-m="pump" aria-selected="false">Pump</button>
       <button role="tab" data-m="adx" aria-selected="false">ADX</button>
@@ -276,6 +282,8 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
     of them over the last 100 candles, and throws out any line a candle has closed below. The line with the most
     touches is used. Every touch counts as a bounce, including the two lows that form the line, so 3 or more is
     a confirmed trendline. A dash means no rising trendline was found on that timeframe.</p>
+  <p>When a candle closes below a support trendline, the line stays on the chart for 30 candles: solid up to the
+    break, dashed after it, with a red dot labeled Breakdown where price broke down.</p>
   <h3>Resistance trendline</h3>
   <p>Resistance is found the same way, flipped upside down: the app finds swing highs (the highest high among 3
     candles on each side), tries every line through two of them, rising, flat or falling, and throws out any line a
@@ -319,6 +327,13 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
   <p>The button at the end of the filter row sets how recent a breakout must be. Broken lines stay on the chart in
     pink, with a gold dot where price broke out, so you can see the breakout. When a resistance breaks, the R:R tab
     goes back to using past bounces for its target.</p>
+  <h3>Breakdown tab</h3>
+  <p>The mirror of Breakout: finds candles closing below a support trendline that had at least your Trendline
+    minimum touches. Each cell shows how far price is below the broken line now. "breaking" means price is below the
+    line right now but the candle hasn't closed yet, and "2 ago" means the close below was 2 candles ago. A red box
+    marks a breakdown. "retest" means price came back up to the line from below, and "failed" (green) means it got
+    back above. Cells without a breakdown show how far price is above the support, in gold when it's close enough
+    to be testing it. The button at the end of the filter row sets how recent a breakdown must be.</p>
   <h3>Scalp tab</h3>
   <p>Runs the scalping routine for you on the most traded tokens (Top 50 by volume unless you pick otherwise) and
     ranks them from the best opportunity down. Each token gets four checks:</p>
@@ -436,7 +451,7 @@ const S = {
   macdF: { sig: true, zero: false, hist: false, cross: false, tfs: [] },
   pumpFilter: 'all', adxFilter: 'up', minPump: 0, minAdx: 0,
   scalpFilter: '3plus', scalpTop: 50, scalpSort: 'score',
-  boFilter: 'bo', boFresh: 3, boSort: 'count',
+  boFilter: 'bo', boFresh: 3, boSort: 'count', bdFilter: 'bd', bdFresh: 3, bdSort: 'count',
   detail: null, show: { tl: true, res: true, ema: true, rr: true, macd: true },
   lastUpdate: 0, nextAt: 0, tickErr: '', busy: false
 };
@@ -448,7 +463,10 @@ try {
   if (Array.isArray(p.ivs)) { const v = ALL_IVS.filter(iv => p.ivs.includes(iv)); if (v.length) S.ivs = v; }
   if (['all', 'sup', 'test', 'brk'].includes(p.filter)) S.filter = p.filter;
   if (['all', 'rtest', 'rboth'].includes(p.rrFilter)) S.rrFilter = p.rrFilter;
-  if (['ema', 'tl', 'bo', 'rr', 'pump', 'adx', 'macd', 'scalp'].includes(p.mode)) S.mode = p.mode;
+  if (['ema', 'tl', 'bo', 'bd', 'rr', 'pump', 'adx', 'macd', 'scalp'].includes(p.mode)) S.mode = p.mode;
+  if (['bd', 'near', 'all'].includes(p.bdFilter)) S.bdFilter = p.bdFilter;
+  if (BO_WINDOWS.includes(p.bdFresh)) S.bdFresh = p.bdFresh;
+  if (p.bdSort === 'count' || p.bdSort === 'vol' || ALL_IVS.includes(p.bdSort)) S.bdSort = p.bdSort;
   if (['bo', 'near', 'all'].includes(p.boFilter)) S.boFilter = p.boFilter;
   if (BO_WINDOWS.includes(p.boFresh)) S.boFresh = p.boFresh;
   if (p.boSort === 'count' || p.boSort === 'vol' || ALL_IVS.includes(p.boSort)) S.boSort = p.boSort;
@@ -482,7 +500,7 @@ function savePrefs() {
       sort: S.sort, rrSort: S.rrSort, show: S.show, pumpSort: S.pumpSort, adxSort: S.adxSort,
       pumpFilter: S.pumpFilter, adxFilter: S.adxFilter, minPump: S.minPump, minAdx: S.minAdx,
       macdSort: S.macdSort, macdF: S.macdF, scalpFilter: S.scalpFilter, scalpTop: S.scalpTop, scalpSort: S.scalpSort,
-      boFilter: S.boFilter, boFresh: S.boFresh, boSort: S.boSort }));
+      boFilter: S.boFilter, boFresh: S.boFresh, boSort: S.boSort, bdFilter: S.bdFilter, bdFresh: S.bdFresh, bdSort: S.bdSort }));
   } catch (_) {}
 }
 
@@ -579,9 +597,10 @@ function append(ch, x) {
 
 // Best rising trendline through two swing lows that no candle has closed below.
 // Returns { a, ya, s, touches } where the line is y(i) = ya + s * (i - a).
-function findTrendline(ch) {
+function findLowLines(ch) {
   const n = ch.c.length, L = ch.l, C = ch.c, atr = ch.atr, P = SUP.pivot;
-  if (!(atr > 0) || n < 2 * P + 5) return null;
+  const out = { tl: null, broken: null, bd: { keep: null } }, broken = [];
+  if (!(atr > 0) || n < 2 * P + 5) return out;
   const piv = [];
   for (let i = P; i < n - P; i++) {
     let low = true;
@@ -589,27 +608,42 @@ function findTrendline(ch) {
     if (low) piv.push(i);
   }
   const touchTol = SUP.touch * atr, breakTol = SUP.breakTol * atr, wickTol = SUP.wickTol * atr;
-  let best = null;
   for (let x = 0; x < piv.length; x++) {
     const a = piv[x];
     for (let y = x + 1; y < piv.length; y++) {
       const b = piv[y];
       if (L[b] <= L[a]) continue;                       // rising lines only
       const s = (L[b] - L[a]) / (b - a);
-      let touches = 0, touching = false, last = a, ok = true;
+      let touches = 0, touching = false, last = a, k = -1;
       for (let i = a; i < n; i++) {
         const v = L[a] + s * (i - a);
-        if (C[i] < v - breakTol || L[i] < v - wickTol) { ok = false; break; }
+        if (C[i] < v - breakTol) { k = i; break; }       // first close below the line: a breakdown
+        if (L[i] < v - wickTol) { k = -2; break; }       // a deep wick through it that closed above: not a clean line
         const t = L[i] <= v + touchTol;
         if (t && !touching) { touches++; last = i; }
         touching = t;
       }
-      if (!ok) continue;
-      if (!best || touches > best.touches || (touches === best.touches && (last > best.last || (last === best.last && a < best.a))))
-        best = { a, ya: L[a], s, touches, last };
+      if (k === -2) continue;
+      const cand = { a, ya: L[a], s, touches, last };
+      if (k === -1) {                                     // never broken: the live support line
+        const t = out.tl;
+        if (!t || touches > t.touches || (touches === t.touches && (last > t.last || (last === t.last && a < t.a)))) out.tl = cand;
+      } else if (b < k && n - k <= BO_KEEP) {             // formed first, then broken recently
+        cand.k = k; cand.ago = n - k;
+        broken.push(cand);
+      }
     }
   }
-  return best;
+  // A close below one line that stayed above the live support line isn't a breakdown of the support
+  const t0 = out.tl;
+  const better = (c, t) => !t || c.touches > t.touches || (c.touches === t.touches && (c.k > t.k || (c.k === t.k && c.a < t.a)));
+  for (const c of broken) {
+    if (t0 && t0.a <= c.k && C[c.k] >= t0.ya + t0.s * (c.k - t0.a) - breakTol) continue;
+    for (const w of BO_WINDOWS) if (c.ago <= w && better(c, out.bd[w])) out.bd[w] = c;
+    if (better(c, out.bd.keep)) out.bd.keep = c;
+  }
+  out.broken = out.bd.keep;
+  return out;
 }
 
 // Best resistance line through two swing highs (rising, flat or falling) that no candle has closed above.
@@ -626,6 +660,7 @@ function findHighLines(ch) {
   }
   const touchTol = SUP.touch * atr, breakTol = SUP.breakTol * atr, wickTol = SUP.wickTol * atr;
   const betterBO = (c, b) => !b || c.touches > b.touches || (c.touches === b.touches && (c.k > b.k || (c.k === b.k && c.a < b.a)));
+  const broken = [];
   for (let x = 0; x < piv.length; x++) {
     const a = piv[x];
     for (let y = x + 1; y < piv.length; y++) {
@@ -646,10 +681,16 @@ function findHighLines(ch) {
         if (!r || touches > r.touches || (touches === r.touches && (last > r.last || (last === r.last && a < r.a)))) out.res = cand;
       } else if (b < k && n - k <= BO_KEEP) {               // formed first, then broken recently
         cand.k = k; cand.ago = n - k;                       // ago 1 = the last closed candle broke out
-        for (const w of BO_WINDOWS) if (cand.ago <= w && betterBO(cand, out.bo[w])) out.bo[w] = cand;
-        if (betterBO(cand, out.bo.keep)) out.bo.keep = cand;
+        broken.push(cand);
       }
     }
+  }
+  // A close above one line that stayed under the live resistance line isn't a breakout of the zone
+  const r = out.res;
+  for (const c of broken) {
+    if (r && r.a <= c.k && C[c.k] <= r.ya + r.s * (c.k - r.a) + breakTol) continue;
+    for (const w of BO_WINDOWS) if (c.ago <= w && betterBO(c, out.bo[w])) out.bo[w] = c;
+    if (betterBO(c, out.bo.keep)) out.bo.keep = c;
   }
   return out;
 }
@@ -692,8 +733,44 @@ function breakoutInfo(ch, price) {
   if (res && res.ok) return { kind: res.state === 'testing' ? 'testing' : 'below', line: ch.res, ref: res.ref, pct: res.pct, touches: res.touches };
   return null;
 }
-const isBreakout = b => !!b && (b.kind === 'now' || b.kind === 'holding' || b.kind === 'retest');
+const isBreakout = b => !!b && (b.kind === 'now' || b.kind === 'holding' || b.kind === 'retest');   // also used by the Breakout tab
 // Broken line to draw: a fresh breakout first, otherwise any line broken in the last BO_KEEP candles
+function brokenSupport(ch) {   // a fresh breakdown first, otherwise any support broken in the last BO_KEEP candles
+  if (!ch || !ch.bd) return null;
+  const f = ch.bd[S.bdFresh], c = f && f.touches >= S.minB.tl ? f : ch.bd.keep;
+  return c && c.touches >= S.minB.tl ? c : null;
+}
+// Breakdown below a support trendline: 'now' (below the line, candle not closed), 'holding', 'retest', 'failed';
+// otherwise where price sits above the support ('testing' when close, 'above')
+function breakdownInfo(ch, price) {
+  if (!ch || !ch.c || !(ch.atr > 0)) return null;
+  const n = ch.c.length, min = S.minB.tl, t = ch.tl;
+  let live = null;
+  if (t && t.touches >= min) {
+    const ref = t.ya + t.s * (n - t.a);
+    if (ref > 0) live = { ref, d: (price - ref) / ch.atr, pct: (price - ref) / ref * 100 };
+  }
+  if (live && live.d < -SUP.breakTol) return { kind: 'now', ago: 0, line: t, ref: live.ref, pct: live.pct, touches: t.touches };
+  const c = ch.bd && ch.bd[S.bdFresh];
+  if (c && c.touches >= min) {
+    const ref = c.ya + c.s * (n - c.a), d = (price - ref) / ch.atr;
+    return { kind: d < -SUP.testZone ? 'holding' : d <= SUP.breakTol ? 'retest' : 'failed', ago: c.ago, line: c, ref,
+      pct: (price - ref) / ref * 100, touches: c.touches };
+  }
+  if (live) return { kind: live.d <= SUP.testZone ? 'testing' : 'above', line: t, ref: live.ref, pct: live.pct, touches: t.touches };
+  return null;
+}
+function supEvents(ch, r, end) {          // candle index of each touch of a support line before `end`
+  const tol = SUP.touch * ch.atr, ev = [];
+  let touching = false, gap = Infinity;
+  for (let i = r.a; i < end; i++) {
+    const v = r.ya + r.s * (i - r.a), t = ch.l[i] <= v + tol, g = Math.abs(ch.l[i] - v);
+    if (t && !touching) { ev.push(i); gap = g; }
+    else if (t && g < gap) { ev[ev.length - 1] = i; gap = g; }
+    touching = t;
+  }
+  return ev;
+}
 function brokenLine(ch) {
   if (!ch || !ch.bo) return null;
   const c = ch.bo[S.boFresh] && ch.bo[S.boFresh].touches >= S.minB.tl ? ch.bo[S.boFresh] : ch.bo.keep;
@@ -728,7 +805,7 @@ function history(ch, from, lineAt) {
 function derive(ch) {
   const n = ch.c.length, e = ch.e;
   ch.ema = n ? e[n - 1] : null; ch.atr = 0; ch.bounces = 0; ch.rising = false;
-  ch.tl = null; ch.tlH = null; ch.emaH = null; ch.res = null; ch.resH = null; ch.bo = null;
+  ch.tl = null; ch.tlH = null; ch.emaH = null; ch.res = null; ch.resH = null; ch.bo = null; ch.tlBroken = null; ch.bd = null;
   let tr = 0, m = 0;
   for (let i = Math.max(1, n - 14); i < n; i++) {
     tr += Math.max(ch.h[i] - ch.l[i], Math.abs(ch.h[i] - ch.c[i - 1]), Math.abs(ch.l[i] - ch.c[i - 1]));
@@ -738,7 +815,9 @@ function derive(ch) {
   computeADX(ch);
   computeMACD(ch);
   if (!(ch.atr > 0)) return;
-  const tl = ch.tl = findTrendline(ch);
+  const ll = findLowLines(ch);
+  const tl = ch.tl = ll.tl;
+  ch.tlBroken = ll.broken; ch.bd = ll.bd;
   if (tl) ch.tlH = history(ch, tl.a, i => tl.ya + tl.s * (i - tl.a));
   const hl = findHighLines(ch);
   ch.res = hl.res; ch.bo = hl.bo;
@@ -1083,75 +1162,101 @@ function cellMACD(s, iv) {
   return `<div class="c${s.freshCross ? ' hot' : ''}" data-iv="${iv}" style="background:rgba(${rgb},${(0.07 + a * 0.55).toFixed(3)});color:${color}">`
     + `${p >= 0 ? '+' : '−'}${num}%<small>${cap}</small></div>`;
 }
-// ---------- Breakout tab ----------
-const BO_RANK = { now: 0, holding: 1, retest: 2, testing: 3, below: 4, failed: 5 };
+// ---------- Breakout and Breakdown tabs ----------
+const BRK_RANK = { now: 0, holding: 1, retest: 2, testing: 3, below: 4, above: 4, failed: 5 };
+const isBreak = b => !!b && (b.kind === 'now' || b.kind === 'holding' || b.kind === 'retest');
+const fmtBrkPct = p => `${p >= 0 ? '+' : '−'}${Math.abs(p) >= 10 ? Math.abs(p).toFixed(1) : Math.abs(p).toFixed(2)}%`;
+const brkCap = b => b.kind === 'now' ? 'breaking' : b.kind === 'retest' ? 'retest' : `${b.ago} ago`;
 function cellBO(b, iv) {
   if (!b) return `<div class="c na" data-iv="${iv}">–</div>`;
-  const pct = `${b.pct >= 0 ? '+' : '−'}${Math.abs(b.pct) >= 10 ? Math.abs(b.pct).toFixed(1) : Math.abs(b.pct).toFixed(2)}%`;
-  if (isBreakout(b)) {
+  const pct = fmtBrkPct(b.pct);
+  if (isBreak(b)) {
     const a = Math.min(Math.max(b.pct, 0) / SCALE[iv], 1);
-    const cap = b.kind === 'now' ? 'breaking' : b.kind === 'retest' ? 'retest' : `${b.ago} ago`;
-    return `<div class="c hot" data-iv="${iv}" style="background:rgba(52,209,166,${(0.12 + a * 0.5).toFixed(3)});color:${a > 0.55 ? '#fff' : 'var(--up)'}">${pct}<small>${cap}</small></div>`;
+    return `<div class="c hot" data-iv="${iv}" style="background:rgba(52,209,166,${(0.12 + a * 0.5).toFixed(3)});color:${a > 0.55 ? '#fff' : 'var(--up)'}">${pct}<small>${brkCap(b)}</small></div>`;
   }
   if (b.kind === 'failed') return `<div class="c sc warn" data-iv="${iv}">${pct}<small>failed</small></div>`;
   if (b.kind === 'testing') return `<div class="c near" data-iv="${iv}">${pct}<small>testing</small></div>`;
   return `<div class="c sc fail" data-iv="${iv}">${pct}<small>below</small></div>`;
 }
-function boCompare(x, y) {                // breakouts first (newest first), then closest under resistance
-  if (!x || !y) return (!x) - (!y);
-  return BO_RANK[x.kind] - BO_RANK[y.kind] || (x.ago || 0) - (y.ago || 0) || y.pct - x.pct;
+function cellBD(b, iv) {
+  if (!b) return `<div class="c na" data-iv="${iv}">–</div>`;
+  const pct = fmtBrkPct(b.pct);
+  if (isBreak(b)) {
+    const a = Math.min(Math.max(-b.pct, 0) / SCALE[iv], 1);
+    return `<div class="c cold" data-iv="${iv}" style="background:rgba(255,110,122,${(0.12 + a * 0.5).toFixed(3)});color:${a > 0.55 ? '#fff' : 'var(--down)'}">${pct}<small>${brkCap(b)}</small></div>`;
+  }
+  if (b.kind === 'failed') return `<div class="c back" data-iv="${iv}">${pct}<small>failed</small></div>`;
+  if (b.kind === 'testing') return `<div class="c near" data-iv="${iv}">${pct}<small>testing</small></div>`;
+  return `<div class="c sc fail" data-iv="${iv}">${pct}<small>above</small></div>`;
 }
-function renderBO() {
-  const list = universe(), ivs = S.ivs, q = S.q.trim().toUpperCase();
+const BRK = {
+  bo: { info: (ch, p) => breakoutInfo(ch, p), cell: cellBO, f: 'boFilter', fresh: 'boFresh', sort: 'boSort', dir: -1,
+    breaking: '<i class="sw box"></i>Breaking out', nearLabel: 'Near resistance', color: 'var(--gold)',
+    none: w => `No resistance trendline breakouts in the last ${w} candle${w > 1 ? 's' : ''} on the selected timeframes.`,
+    noneNear: 'No token is testing a resistance trendline right now.', most: 'Most timeframes breaking out',
+    newest: 'Newest breakout first', title: 'Trendline breakouts', what: 'breakout' },
+  bd: { info: (ch, p) => breakdownInfo(ch, p), cell: cellBD, f: 'bdFilter', fresh: 'bdFresh', sort: 'bdSort', dir: 1,
+    breaking: '<i class="sw cbox"></i>Breaking down', nearLabel: 'Near support', color: 'var(--down)',
+    none: w => `No support trendline breakdowns in the last ${w} candle${w > 1 ? 's' : ''} on the selected timeframes.`,
+    noneNear: 'No token is testing a support trendline right now.', most: 'Most timeframes breaking down',
+    newest: 'Newest breakdown first', title: 'Trendline breakdowns', what: 'breakdown' }
+};
+const isBrkMode = () => S.mode === 'bo' || S.mode === 'bd';
+function brkCompare(x, y, dir) {         // breaks first (newest first), then closest to the line
+  if (!x || !y) return (!x) - (!y);
+  return BRK_RANK[x.kind] - BRK_RANK[y.kind] || (x.ago || 0) - (y.ago || 0) || dir * (x.pct - y.pct);
+}
+function renderBreak() {
+  const m = BRK[S.mode], list = universe(), ivs = S.ivs, q = S.q.trim().toUpperCase();
   let rows = list.map(sym => {
     const t = S.tick.get(sym), st = {};
     let count = 0, freshest = Infinity, near = false;
     for (const iv of ivs) {
-      const b = st[iv] = breakoutInfo(S.charts.get(sym + '|' + iv), t.price);
-      if (isBreakout(b)) { count++; freshest = Math.min(freshest, b.ago); }
+      const b = st[iv] = m.info(S.charts.get(sym + '|' + iv), t.price);
+      if (isBreak(b)) { count++; freshest = Math.min(freshest, b.ago); }
       if (b && b.kind === 'testing') near = true;
     }
     return { sym, base: S.pairs.get(sym), price: t.price, vol: t.vol, st, count, freshest, near };
   });
   if (q) rows = rows.filter(r => r.base.includes(q));
-  if (S.boFilter === 'bo') rows = rows.filter(r => r.count > 0);
-  else if (S.boFilter === 'near') rows = rows.filter(r => r.near);
-  if (S.boSort === 'count') rows.sort((a, b) => b.count - a.count || a.freshest - b.freshest);
-  else if (S.boSort !== 'vol') rows.sort((a, b) => boCompare(a.st[S.boSort], b.st[S.boSort]));
+  const filter = S[m.f], sort = S[m.sort];
+  if (filter === S.mode) rows = rows.filter(r => r.count > 0);
+  else if (filter === 'near') rows = rows.filter(r => r.near);
+  if (sort === 'count') rows.sort((a, b) => b.count - a.count || a.freshest - b.freshest);
+  else if (sort !== 'vol') rows.sort((a, b) => brkCompare(a.st[sort], b.st[sort], m.dir));
   S.countText = !list.length ? '' : rows.length === list.length ? `${list.length} pairs` : `${rows.length} of ${list.length} pairs`;
   let empty = 'Waiting for data from Binance…';
   if (q) empty = `No ${QUOTE} pair matches “${esc(S.q.trim())}”.`;
-  else if (list.length) empty = S.boFilter === 'near' ? 'No token is testing a resistance trendline right now.'
-    : `No resistance trendline breakouts in the last ${S.boFresh} candle${S.boFresh > 1 ? 's' : ''} on the selected timeframes.`;
+  else if (list.length) empty = filter === 'near' ? m.noneNear : m.none(S[m.fresh]);
   $('list').innerHTML = rows.length
     ? rows.map(r => `<div class="row" role="button" tabindex="0" data-sym="${r.sym}" aria-label="${esc(r.base)} chart">`
         + `<div class="tok"><b>${esc(r.base)}</b><span>${fmtPrice(r.price)}</span>`
-        + `<span>${r.count ? `<span style="color:var(--gold)">${r.count} TF${r.count > 1 ? 's' : ''}</span>` : `Vol ${fmtVol(r.vol)}`}</span></div>`
-        + ivs.map(iv => cellBO(r.st[iv], iv)).join('') + '</div>').join('')
+        + `<span>${r.count ? `<span style="color:${m.color}">${r.count} TF${r.count > 1 ? 's' : ''}</span>` : `Vol ${fmtVol(r.vol)}`}</span></div>`
+        + ivs.map(iv => m.cell(r.st[iv], iv)).join('') + '</div>').join('')
     : `<div class="empty">${empty}</div>`;
   renderHeader(); renderStatus();
   if (S.detail) renderDetail();
 }
-function renderBOHeader() {
-  const key = ['bo', S.ivs.join(), S.boFilter, S.boFresh, S.boSort].join('|');
+function renderBreakHeader() {
+  const m = BRK[S.mode], filter = S[m.f], fresh = S[m.fresh], so = S[m.sort];
+  const key = [S.mode, S.ivs.join(), filter, fresh, so].join('|');
   if (key === headKey) return;
   headKey = key;
-  const so = S.boSort;
   $('cols').innerHTML = `<button data-k="vol" class="${so === 'vol' ? 'on' : ''}">Token${so === 'vol' ? ' ↓' : ''}</button>`
     + S.ivs.map(iv => `<button data-k="${iv}" class="${so === iv ? 'on' : ''}">${LABEL[iv]}${so === iv ? ' ↓' : ''}</button>`).join('');
   syncTabs();
   $('filter').classList.remove('stack');
-  const fb = (f, label) => `<button data-f="${f}" aria-pressed="${f === S.boFilter}">${label}</button>`;
-  $('filter').innerHTML = fb('bo', '<i class="sw box"></i>Breaking out') + fb('near', 'Near resistance') + fb('all', 'All')
-    + `<label class="pick"><span>≤${S.boFresh} candle${S.boFresh > 1 ? 's' : ''}</span><select id="minPick" aria-label="How recent a breakout must be">`
-    + BO_WINDOWS.map(v => `<option value="${v}" ${v === S.boFresh ? 'selected' : ''}>Breakouts in the last ${v} candle${v > 1 ? 's' : ''}</option>`).join('')
+  const fb = (f, label) => `<button data-f="${f}" aria-pressed="${f === filter}">${label}</button>`;
+  $('filter').innerHTML = fb(S.mode, m.breaking) + fb('near', m.nearLabel) + fb('all', 'All')
+    + `<label class="pick"><span>≤${fresh} candle${fresh > 1 ? 's' : ''}</span><select id="minPick" aria-label="How recent a ${m.what} must be">`
+    + BO_WINDOWS.map(v => `<option value="${v}" ${v === fresh ? 'selected' : ''}>${m.what[0].toUpperCase() + m.what.slice(1)}s in the last ${v} candle${v > 1 ? 's' : ''}</option>`).join('')
     + '</select></label>';
-  $('sort').innerHTML = '<option value="count">Most timeframes breaking out</option>'
-    + `<optgroup label="Newest breakout first">${S.ivs.map(iv => `<option value="${iv}">${LABEL[iv]}</option>`).join('')}</optgroup>`
+  $('sort').innerHTML = `<option value="count">${m.most}</option>`
+    + `<optgroup label="${m.newest}">${S.ivs.map(iv => `<option value="${iv}">${LABEL[iv]}</option>`).join('')}</optgroup>`
     + '<option value="vol">24h volume</option>';
   $('sort').value = so;
   $('sortLabel').textContent = so === 'count' ? 'Most TFs' : so === 'vol' ? 'Volume' : `${LABEL[so]} ↓`;
-  document.title = 'Trendline breakouts';
+  document.title = m.title;
 }
 // Keep the selected tab visible and fade the edge when more tabs are off screen
 let lastTabMode = '';
@@ -1296,7 +1401,7 @@ function rrPass(s) {
 function render() {
   layout();
   if (S.mode === 'scalp') { renderScalp(); return; }
-  if (S.mode === 'bo') { renderBO(); return; }
+  if (isBrkMode()) { renderBreak(); return; }
   const list = universe(), ivs = S.ivs, rr = S.mode === 'rr', mom = isMom();
   if (S.sort.by !== 'vol' && !ivs.includes(S.sort.iv)) S.sort = { by: 'vol', iv: '', dir: -1 };
   fixMomSorts();
@@ -1378,7 +1483,7 @@ function render() {
 let headKey = '';
 function renderHeader() {
   if (S.mode === 'scalp') { renderScalpHeader(); return; }
-  if (S.mode === 'bo') { renderBOHeader(); return; }
+  if (isBrkMode()) { renderBreakHeader(); return; }
   fixMomSorts();
   const rr = S.mode === 'rr', mom = isMom(), so = S.sort, rs = S.rrSort, ms = mom ? momSort() : null;
   const key = [S.ivs.join(), S.mode, so.by, so.iv, so.dir, rs.iv, rs.dir, S.filter, S.rrFilter,
@@ -1596,6 +1701,13 @@ function facts(ch, price, sym, iv) {
   } else {
     lineRows.push(`<div class="none">No rising trendline on ${LABEL[iv]} right now. Price may be in a downtrend, or it has closed below every recent line.</div>`);
   }
+  const bs = brokenSupport(ch);
+  if (bs) {
+    const ref = bs.ya + bs.s * (n - bs.a), d = (price - ref) / ch.atr, pct = (price - ref) / ref * 100;
+    row(lineRows, 'Breakdown', `${bs.ago} candle${bs.ago > 1 ? 's' : ''} ago`, d > SUP.breakTol ? '' : 'dn');
+    row(lineRows, 'Broken support now', `${fmtExact(ref, sym)} (×${bs.touches})`);
+    row(lineRows, 'Price vs broken support', `${fmtPct(pct)}${d > SUP.breakTol ? ', back above it' : d >= -SUP.testZone ? ', retesting it' : ' below'}`);
+  }
   const rs = resInfo(ch, price);
   lineRows.push('<div class="sep"></div>');
   if (rs) {
@@ -1674,6 +1786,7 @@ function drawChart(ch, price, iv) {
   const R = 64, T = 8, B = 22, PW = W - R;                // right gutter for price tags
   const n = ch.c.length, tl = ch.tl, showTl = S.show.tl && tl, showEma = S.show.ema && ch.ema != null;
   const rl = ch.res, showRes = S.show.res && rl, rat = i => rl.ya + rl.s * (i - rl.a);
+  const sb = S.show.tl ? brokenSupport(ch) : null, sbat = i => sb.ya + sb.s * (i - sb.a);
   const bl = S.show.res ? brokenLine(ch) : null, bat = i => bl.ya + bl.s * (i - bl.a);
   const su = S.show.rr ? setup(ch, price) : null, showSu = su && su.rr > 0;
   const f = ch.forming ? { ...ch.forming } : { o: ch.c[n - 1], h: ch.c[n - 1], l: ch.c[n - 1] };
@@ -1685,6 +1798,7 @@ function drawChart(ch, price, iv) {
   let lo = Math.min(f.l, ...ch.l), hi = Math.max(f.h, ...ch.h);
   if (showEma) for (const v of ch.e) if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
   if (showTl) { lo = Math.min(lo, at(tl.a)); hi = Math.max(hi, at(n + 1)); }
+  if (sb) { lo = Math.min(lo, sbat(sb.a), sbat(n + 1)); hi = Math.max(hi, sbat(sb.a), sbat(n + 1)); }
   if (showRes) { lo = Math.min(lo, rat(rl.a), rat(n + 1)); hi = Math.max(hi, rat(rl.a), rat(n + 1)); }
   if (bl) { lo = Math.min(lo, bat(bl.a), bat(n + 1)); hi = Math.max(hi, bat(bl.a), bat(n + 1)); }
   if (showSu) { lo = Math.min(lo, su.stop); hi = Math.max(hi, su.target); }
@@ -1727,6 +1841,15 @@ function drawChart(ch, price, iv) {
     g += `<line class="g-tl" x1="${r1(X(tl.a))}" y1="${r1(Y(at(tl.a)))}" x2="${r1(X(n))}" y2="${r1(Y(at(n)))}"/>`
       + `<line class="g-tl g-proj" x1="${r1(X(n))}" y1="${r1(Y(at(n)))}" x2="${r1(X(end))}" y2="${r1(Y(at(end)))}"/>`;
     for (const ev of (ch.tlH ? ch.tlH.events : [])) g += `<circle class="g-touch" cx="${r1(X(ev.idx))}" cy="${r1(Y(at(ev.idx)))}" r="3.2"/>`;
+  }
+  if (sb) {                                               // broken support: solid until the breakdown, dashed after
+    const end = slots - 0.5;
+    g += `<line class="g-tl" x1="${r1(X(sb.a))}" y1="${r1(Y(sbat(sb.a)))}" x2="${r1(X(sb.k))}" y2="${r1(Y(sbat(sb.k)))}"/>`
+      + `<line class="g-tl g-proj" x1="${r1(X(sb.k))}" y1="${r1(Y(sbat(sb.k)))}" x2="${r1(X(end))}" y2="${r1(Y(sbat(end)))}"/>`;
+    for (const i of supEvents(ch, sb, sb.k)) g += `<circle class="g-touch" cx="${r1(X(i))}" cy="${r1(Y(sbat(i)))}" r="3.2"/>`;
+    const bx = X(sb.k), by = Y(sbat(sb.k));
+    g += `<circle class="g-bd" cx="${r1(bx)}" cy="${r1(by)}" r="5"/>`
+      + `<text class="g-bdlab" x="${r1(Math.min(Math.max(bx, 30), PW - 34))}" y="${r1(Math.min(by + 17, H - B - 4))}" text-anchor="middle">Breakdown</text>`;
   }
   if (showRes) {
     const end = slots - 0.5;
@@ -1835,7 +1958,7 @@ $('mode').addEventListener('click', e => {
 $('filter').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (S.mode === 'scalp') { S.scalpFilter = b.dataset.f; savePrefs(); render(); return; }
-  if (S.mode === 'bo') { S.boFilter = b.dataset.f; savePrefs(); render(); return; }
+  if (isBrkMode()) { S[BRK[S.mode].f] = b.dataset.f; savePrefs(); render(); return; }
   if (S.mode === 'macd') {                    // MACD filters can be combined
     if (b.dataset.mtf) {
       const iv = b.dataset.mtf, on = S.macdF.tfs.includes(iv);
@@ -1852,7 +1975,7 @@ $('filter').addEventListener('click', e => {
 $('filter').addEventListener('change', e => {
   if (e.target.id !== 'minPick') return;
   if (S.mode === 'scalp') { S.scalpTop = +e.target.value; savePrefs(); schedule(); render(); return; }
-  if (S.mode === 'bo') { S.boFresh = +e.target.value; savePrefs(); render(); return; }
+  if (isBrkMode()) { S[BRK[S.mode].fresh] = +e.target.value; savePrefs(); render(); return; }
   if (S.mode === 'macd') S.macdSort = Object.assign({}, S.macdSort, { iv: e.target.value });
   else if (S.mode === 'rr') S.minRR = +e.target.value;
   else if (S.mode === 'pump') S.minPump = +e.target.value;
@@ -1861,8 +1984,8 @@ $('filter').addEventListener('change', e => {
   savePrefs(); render();
 });
 $('sort').addEventListener('change', e => {
-  if (S.mode === 'scalp' || S.mode === 'bo') {
-    S[S.mode === 'bo' ? 'boSort' : 'scalpSort'] = e.target.value; savePrefs(); render(); window.scrollTo({ top: 0 }); return;
+  if (S.mode === 'scalp' || isBrkMode()) {
+    S[isBrkMode() ? BRK[S.mode].sort : 'scalpSort'] = e.target.value; savePrefs(); render(); window.scrollTo({ top: 0 }); return;
   }
   const v = e.target.value.split(':');
   if (S.mode === 'rr') S.rrSort = { iv: v[0], dir: v[0] === 'vol' ? -1 : +v[1] };
@@ -1874,7 +1997,10 @@ $('cols').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const k = b.dataset.k;
   if (S.mode === 'scalp') { S.scalpSort = k; savePrefs(); render(); window.scrollTo({ top: 0 }); return; }
-  if (S.mode === 'bo') { S.boSort = k === 'vol' ? 'vol' : S.boSort === k ? 'count' : k; savePrefs(); render(); window.scrollTo({ top: 0 }); return; }
+  if (isBrkMode()) {
+    const key = BRK[S.mode].sort;
+    S[key] = k === 'vol' ? 'vol' : S[key] === k ? 'count' : k; savePrefs(); render(); window.scrollTo({ top: 0 }); return;
+  }
   if (isMom()) {
     const key = S.mode + 'Sort', so = S[key];
     if (k === 'vol') S[key] = so.by === 'vol' ? { by: 'val', iv: so.iv, dir: -1 } : { by: 'vol', iv: so.iv, dir: -1 };
@@ -1898,17 +2024,18 @@ $('refresh').addEventListener('click', () => loop());
 function rowTap(e) {
   const row = e.target.closest('.row'); if (!row) return;
   const c = e.target.closest('[data-iv]');
-  const def = S.mode === 'scalp' ? '15m' : S.mode === 'bo' ? boIv(row.dataset.sym) : S.mode === 'rr' ? (ALL_IVS.includes(S.rrSort.iv) ? S.rrSort.iv : bestIv(row.dataset.sym))
+  const def = S.mode === 'scalp' ? '15m' : isBrkMode() ? brkIv(row.dataset.sym) : S.mode === 'rr' ? (ALL_IVS.includes(S.rrSort.iv) ? S.rrSort.iv : bestIv(row.dataset.sym))
     : isMom() ? momSort().iv : S.sort.iv;
   openDetail(row.dataset.sym, c ? c.dataset.iv : (def || S.ivs[0]));
 }
-function boIv(sym) {          // the timeframe with the newest breakout (or the sorted one)
-  if (ALL_IVS.includes(S.boSort)) return S.boSort;
+function brkIv(sym) {         // the timeframe with the newest breakout or breakdown (or the sorted one)
+  const m = BRK[S.mode];
+  if (ALL_IVS.includes(S[m.sort])) return S[m.sort];
   const t = S.tick.get(sym);
   let best = null, iv = '';
   for (const x of S.ivs) {
-    const b = t && breakoutInfo(S.charts.get(sym + '|' + x), t.price);
-    if (b && boCompare(b, best) < 0) { best = b; iv = x; }
+    const b = t && m.info(S.charts.get(sym + '|' + x), t.price);
+    if (b && brkCompare(b, best, m.dir) < 0) { best = b; iv = x; }
   }
   return iv;
 }
