@@ -13,7 +13,7 @@
 :root{
   --ink:#131A2B; --panel:#1B2440; --line:#2A3558; --text:#E8EBF4; --muted:#8C96B3;
   --up:#34D1A6; --down:#FF6E7A; --gold:#F0B90B; --ema:#A99BFF; --macd:#5B9CFF; --sig:#FF9F43; --res:#FF8FA3;
-  --n:6; --tok:1.1fr; --fs:11.5px; --tfs:14px;
+  --n:6; --tok:1.1fr; --fs:11.5px; --tfs:14px; --cfs:9.5px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--ink);color:var(--text);
@@ -88,8 +88,10 @@ main{padding:4px 12px 16px}
 .c{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
   border-radius:7px;min-height:44px;font-size:var(--fs);font-weight:600;font-variant-numeric:tabular-nums;
   letter-spacing:-.02em;line-height:1.15;white-space:nowrap}
-.c small{font-size:9.5px;font-weight:600;opacity:.85;letter-spacing:0}
+.c small{font-size:var(--cfs);font-weight:600;opacity:.85;letter-spacing:0}
 .c.na{color:var(--line)}
+.vl{font-style:normal}
+.n7 .vl{display:none}
 .c.hold::after,.c.test::after{content:"";position:absolute;left:3px;right:3px;bottom:2px;height:3px;
   border-radius:2px;background:var(--gold)}
 .c.test,.c.rtest,.c.hot{box-shadow:inset 0 0 0 1.5px var(--gold)}
@@ -164,7 +166,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 .facts dd.big.res{color:var(--res)}
 .facts dd.big.rr{color:var(--up)}
 .facts dd.pass{color:var(--up)}
-.c.sc{font-size:12.5px}
+.c.sc{font-size:min(12.5px, var(--fs))}
 .c.sc.pass{background:rgba(52,209,166,.2);color:var(--up);box-shadow:inset 0 0 0 1.5px rgba(52,209,166,.55)}
 .c.sc.pass::before{content:"✓";position:absolute;top:1px;right:3px;font-size:9px;font-weight:700}
 .c.sc.fail{background:rgba(140,150,179,.08);color:var(--muted)}
@@ -223,6 +225,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
       <button role="tab" data-m="bd" aria-selected="false">Breakdown</button>
       <button role="tab" data-m="rr" aria-selected="false">R:R</button>
       <button role="tab" data-m="pump" aria-selected="false">Pump</button>
+      <button role="tab" data-m="pumpb" aria-selected="false">Pump/BTC</button>
       <button role="tab" data-m="adx" aria-selected="false">ADX</button>
       <button role="tab" data-m="macd" aria-selected="false">MACD</button>
       <button role="tab" data-m="scalp" aria-selected="false">Scalp</button>
@@ -250,7 +253,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 <main id="list"><div class="empty">Loading pairs…</div></main>
 <footer>
   EMA 25 and Trendline show how far the live price is from that line on each timeframe; green is above and red
-  is below. R:R rates a buy at today's price by reward to risk. Pump ranks what is rising fastest right now,
+  is below. R:R rates a buy at today's price by reward to risk. Pump ranks what is rising fastest right now (Pump/BTC compares it with Bitcoin),
   ADX ranks the strongest trends, MACD compares momentum by PPO, and Scalp combines them into a ranked
   list of scalping opportunities. Tap a column to sort by it, and tap again to flip. Tap a token, or one of its
   cells, to see its chart. Not financial advice.
@@ -312,6 +315,11 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
     means the last closed candle traded 3.2 times its usual volume (the median of the 20 candles before it). A gold
     box marks a rise backed by at least twice the usual volume. Tokens are ranked on the timeframe you sort by, from
     the fastest rise down, and the filters use that timeframe too.</p>
+  <h3>Pump/BTC tab</h3>
+  <p>The same as Pump, but every move is measured against Bitcoin instead of USDT: how much the coin rose or fell
+    compared with BTC over the same 3 candles, which is the change in its price in BTC. A coin that rose 5% while
+    BTC rose 3% shows about +1.9%. Positive means it's beating Bitcoin, negative means it's lagging. Beating BTC
+    shows only coins ahead of Bitcoin, and With volume adds at least twice the usual volume. BTC itself isn't listed.</p>
   <h3>ADX tab</h3>
   <p>ADX (14) measures how strong a trend is: below 20 is weak, above 25 is a strong trend and above 40 is very strong.
     Green means an uptrend (+DI above −DI) and red means a downtrend. "Rising" means ADX went up on the last closed
@@ -418,8 +426,8 @@ const PUMP_MIN_OPTIONS = [0, 1, 2, 3, 5, 10];      // minimum rise in %
 const ADX_MIN_OPTIONS = [0, 20, 25, 30, 40, 50];   // minimum ADX
 const ADX_N = 14;
 const MACD_P = { fast: 12, slow: 26, signal: 9, nearZero: 0.2, zeroLookback: 50 };
-const MACD_SCALE = { '1d': 6, '4h': 3, '1h': 1.5, '15m': 0.75, '3m': 0.4, '1m': 0.25 }; // PPO % where color is full
-const MOM = ['pump', 'adx', 'macd'];
+const MACD_SCALE = { '1d': 6, '4h': 3, '1h': 1.5, '15m': 0.75, '5m': 0.55, '3m': 0.4, '1m': 0.25 }; // PPO % where color is full
+const MOM = ['pump', 'pumpb', 'adx', 'macd'];
 // The scalping routine: thresholds for each check
 const SCALP = { maxChase: 8, minVol: 2, minAdx: 25, minRR: 2 };
 const SCALP_IVS = ['1h', '15m', '3m'];
@@ -429,10 +437,10 @@ const BO_KEEP = 30;                 // broken lines stay on the chart for this m
 // ----------------------------------------------
 
 const K = 2 / (PERIOD + 1);
-const ALL_IVS = ['1d', '4h', '1h', '15m', '3m', '1m'];
-const LABEL = { '1d': '1D', '4h': '4H', '1h': '1H', '15m': '15m', '3m': '3m', '1m': '1m' };
-const IV_MS = { '1d': 864e5, '4h': 144e5, '1h': 36e5, '15m': 9e5, '3m': 18e4, '1m': 6e4 };
-const SCALE = { '1d': 15, '4h': 8, '1h': 4, '15m': 2, '3m': 1.2, '1m': 0.8 }; // % where color is fully saturated
+const ALL_IVS = ['1d', '4h', '1h', '15m', '5m', '3m', '1m'];
+const LABEL = { '1d': '1D', '4h': '4H', '1h': '1H', '15m': '15m', '5m': '5m', '3m': '3m', '1m': '1m' };
+const IV_MS = { '1d': 864e5, '4h': 144e5, '1h': 36e5, '15m': 9e5, '5m': 3e5, '3m': 18e4, '1m': 6e4 };
+const SCALE = { '1d': 15, '4h': 8, '1h': 4, '15m': 2, '5m': 1.5, '3m': 1.2, '1m': 0.8 }; // % where color is fully saturated
 const STABLES = new Set(['USDC','FDUSD','TUSD','USDP','DAI','BUSD','USD1','EUR','AEUR','EURI','EURC','XUSD',
   'BFUSD','USDE','PYUSD','RLUSD','USDS','UST','USTC','GBP','TRY','BRL']);
 // data-api.binance.vision is Binance's public market-data mirror; it works where api.binance.com is blocked
@@ -448,6 +456,7 @@ const S = {
   ivs: ALL_IVS.slice(), top: 0, hideStable: true, filter: 'all', rrFilter: 'all',
   sort: { by: 'vol', iv: '', dir: -1 }, rrSort: { iv: 'best', dir: -1 }, q: '',
   pumpSort: { by: 'val', iv: '', dir: -1 }, adxSort: { by: 'val', iv: '', dir: -1 }, macdSort: { by: 'val', iv: '', dir: -1 },
+  pumpbSort: { by: 'val', iv: '', dir: -1 }, pumpbFilter: 'all', minPumpb: 0,
   macdF: { sig: true, zero: false, hist: false, cross: false, tfs: [] },
   pumpFilter: 'all', adxFilter: 'up', minPump: 0, minAdx: 0,
   scalpFilter: '3plus', scalpTop: 50, scalpSort: 'score',
@@ -460,10 +469,16 @@ try {
   if (typeof p.auto === 'boolean') S.auto = p.auto;
   if ([0, 50, 100, 200].includes(p.top)) S.top = p.top;
   if (typeof p.hideStable === 'boolean') S.hideStable = p.hideStable;
-  if (Array.isArray(p.ivs)) { const v = ALL_IVS.filter(iv => p.ivs.includes(iv)); if (v.length) S.ivs = v; }
+  if (Array.isArray(p.ivs)) {
+    const saved = (p.tfv || 1) < 2 ? [...p.ivs, '5m'] : p.ivs;     // 5m was added later: switch it on once
+    const v = ALL_IVS.filter(iv => saved.includes(iv));
+    if (v.length) S.ivs = v;
+  }
   if (['all', 'sup', 'test', 'brk'].includes(p.filter)) S.filter = p.filter;
   if (['all', 'rtest', 'rboth'].includes(p.rrFilter)) S.rrFilter = p.rrFilter;
-  if (['ema', 'tl', 'bo', 'bd', 'rr', 'pump', 'adx', 'macd', 'scalp'].includes(p.mode)) S.mode = p.mode;
+  if (['ema', 'tl', 'bo', 'bd', 'rr', 'pump', 'pumpb', 'adx', 'macd', 'scalp'].includes(p.mode)) S.mode = p.mode;
+  if (['all', 'up', 'vol'].includes(p.pumpbFilter)) S.pumpbFilter = p.pumpbFilter;
+  if (PUMP_MIN_OPTIONS.includes(p.minPumpb)) S.minPumpb = p.minPumpb;
   if (['bd', 'near', 'all'].includes(p.bdFilter)) S.bdFilter = p.bdFilter;
   if (BO_WINDOWS.includes(p.bdFresh)) S.bdFresh = p.bdFresh;
   if (p.bdSort === 'count' || p.bdSort === 'vol' || ALL_IVS.includes(p.bdSort)) S.bdSort = p.bdSort;
@@ -473,7 +488,7 @@ try {
   if (['all4', '3plus', 'all'].includes(p.scalpFilter)) S.scalpFilter = p.scalpFilter;
   if (SCALP_TOPS.includes(p.scalpTop)) S.scalpTop = p.scalpTop;
   if (['score', 'rr', 'vol'].includes(p.scalpSort)) S.scalpSort = p.scalpSort;
-  for (const k of ['pumpSort', 'adxSort', 'macdSort'])
+  for (const k of ['pumpSort', 'pumpbSort', 'adxSort', 'macdSort'])
     if (p[k] && ['val', 'rvol', 'hist', 'vol'].includes(p[k].by) && ALL_IVS.includes(p[k].iv))
       S[k] = { by: p[k].by, iv: p[k].iv, dir: p[k].dir === 1 ? 1 : -1 };
   if (['all', 'up', 'vol'].includes(p.pumpFilter)) S.pumpFilter = p.pumpFilter;
@@ -495,10 +510,11 @@ try {
 } catch (_) {}
 function savePrefs() {
   try {
-    localStorage.setItem('ema25prefs', JSON.stringify({ auto: S.auto, top: S.top, hideStable: S.hideStable,
+    localStorage.setItem('ema25prefs', JSON.stringify({ tfv: 2, auto: S.auto, top: S.top, hideStable: S.hideStable,
       ivs: S.ivs, filter: S.filter, rrFilter: S.rrFilter, mode: S.mode, minB: S.minB, minRR: S.minRR,
       sort: S.sort, rrSort: S.rrSort, show: S.show, pumpSort: S.pumpSort, adxSort: S.adxSort,
       pumpFilter: S.pumpFilter, adxFilter: S.adxFilter, minPump: S.minPump, minAdx: S.minAdx,
+      pumpbSort: S.pumpbSort, pumpbFilter: S.pumpbFilter, minPumpb: S.minPumpb,
       macdSort: S.macdSort, macdF: S.macdF, scalpFilter: S.scalpFilter, scalpTop: S.scalpTop, scalpSort: S.scalpSort,
       boFilter: S.boFilter, boFresh: S.boFresh, boSort: S.boSort, bdFilter: S.bdFilter, bdFresh: S.bdFresh, bdSort: S.bdSort }));
   } catch (_) {}
@@ -873,6 +889,7 @@ function wantedCharts() {
   const want = new Map();
   for (const sym of universe()) for (const iv of S.ivs) want.set(sym + '|' + iv, [sym, iv]);
   if (S.mode === 'scalp') for (const sym of scalpUniverse()) for (const iv of SCALP_IVS) want.set(sym + '|' + iv, [sym, iv]);
+  if (S.mode === 'pumpb' && S.pairs.has(BTC_SYM)) for (const iv of S.ivs) want.set(BTC_SYM + '|' + iv, [BTC_SYM, iv]);
   return want;
 }
 function schedule() {
@@ -1006,6 +1023,16 @@ function macdInfo(ch, price) {
     freshCross: !!cross && cross.up && ago <= 2 && nearZero
   };
 }
+// Move over the last 3 candles measured in BTC: the coin's move compared with Bitcoin's move over the same candles
+const BTC_SYM = 'BTC' + QUOTE;
+function pumpRelInfo(sym, iv) {
+  if (sym === BTC_SYM) return null;
+  const t = S.tick.get(sym), b = S.tick.get(BTC_SYM);
+  if (!t || !b) return null;
+  const pu = pumpInfo(S.charts.get(sym + '|' + iv), t.price), pb = pumpInfo(S.charts.get(BTC_SYM + '|' + iv), b.price);
+  if (!pu || !pb) return null;
+  return { pct: ((1 + pu.pct / 100) / (1 + pb.pct / 100) - 1) * 100, rvol: pu.rvol, own: pu.pct, btc: pb.pct };
+}
 function adxInfo(ch) {
   if (!ch || !ch.c || ch.adx == null) return null;
   return { adx: ch.adx, rising: ch.adxPrev != null && ch.adx > ch.adxPrev, up: ch.pdi > ch.mdi, pdi: ch.pdi, mdi: ch.mdi };
@@ -1057,6 +1084,7 @@ function state(sym, iv) {
   if (!t) return null;
   if (S.mode === 'rr') { const su = setup(ch, t.price); return su ? { rr: su.rr, su } : null; }
   if (S.mode === 'pump') return pumpInfo(ch, t.price);
+  if (S.mode === 'pumpb') return pumpRelInfo(sym, iv);
   if (S.mode === 'adx') return adxInfo(ch);
   if (S.mode === 'macd') return macdInfo(ch, t.price);
   return lineInfo(ch, t.price, S.mode);
@@ -1126,9 +1154,11 @@ function cellRR(s, iv) {
 function layout() {
   const n = S.mode === 'scalp' ? 4 : S.ivs.length, r = document.documentElement.style;
   r.setProperty('--n', n);
-  r.setProperty('--tok', n <= 3 ? '1.6fr' : n === 4 ? '1.45fr' : n === 5 ? '1.25fr' : '1.1fr');
-  r.setProperty('--fs', n <= 4 ? '13.5px' : n === 5 ? '12.5px' : '11.5px');
-  r.setProperty('--tfs', n <= 4 ? '15px' : '14px');
+  r.setProperty('--tok', n <= 3 ? '1.6fr' : n === 4 ? '1.45fr' : n === 5 ? '1.25fr' : n === 6 ? '1.1fr' : '1fr');
+  r.setProperty('--fs', n <= 4 ? '13.5px' : n === 5 ? '12.5px' : n === 6 ? '11.5px' : '10.5px');
+  r.setProperty('--tfs', n <= 4 ? '15px' : n <= 6 ? '14px' : '13px');
+  r.setProperty('--cfs', n >= 7 ? '8.5px' : '9.5px');
+  document.documentElement.classList.toggle('n7', n >= 7);   // narrow token column: drop the "Vol" label
 }
 
 let renderTimer = null;
@@ -1231,7 +1261,7 @@ function renderBreak() {
   $('list').innerHTML = rows.length
     ? rows.map(r => `<div class="row" role="button" tabindex="0" data-sym="${r.sym}" aria-label="${esc(r.base)} chart">`
         + `<div class="tok"><b>${esc(r.base)}</b><span>${fmtPrice(r.price)}</span>`
-        + `<span>${r.count ? `<span style="color:${m.color}">${r.count} TF${r.count > 1 ? 's' : ''}</span>` : `Vol ${fmtVol(r.vol)}`}</span></div>`
+        + `<span>${r.count ? `<span style="color:${m.color}">${r.count} TF${r.count > 1 ? 's' : ''}</span>` : `<i class="vl">Vol </i>${fmtVol(r.vol)}`}</span></div>`
         + ivs.map(iv => m.cell(r.st[iv], iv)).join('') + '</div>').join('')
     : `<div class="empty">${empty}</div>`;
   renderHeader(); renderStatus();
@@ -1364,15 +1394,15 @@ function scalpFacts(sym) {
 const isMom = () => MOM.includes(S.mode);
 function momSort() { return S[S.mode + 'Sort']; }
 function defaultMomIv(mode) {
-  const pref = { pump: '15m', adx: '4h', macd: '1h' }[mode];
-  return S.ivs.includes(pref) ? pref : mode === 'pump' ? S.ivs[S.ivs.length - 1] : S.ivs[0];
+  const pref = { pump: '15m', pumpb: '15m', adx: '4h', macd: '1h' }[mode];
+  return S.ivs.includes(pref) ? pref : mode === 'pump' || mode === 'pumpb' ? S.ivs[S.ivs.length - 1] : S.ivs[0];
 }
 function fixMomSorts() {          // keep each tab's ranking timeframe among the selected ones
   for (const m of MOM) if (!S.ivs.includes(S[m + 'Sort'].iv)) S[m + 'Sort'] = { by: 'val', iv: defaultMomIv(m), dir: -1 };
 }
 function momValue(s, by) {
   if (!s) return null;
-  if (S.mode === 'pump') return by === 'rvol' ? s.rvol : s.pct;
+  if (S.mode === 'pump' || S.mode === 'pumpb') return by === 'rvol' ? s.rvol : s.pct;
   if (S.mode === 'macd') return by === 'hist' ? s.histPct : s.ppo;
   return s.adx;
 }
@@ -1382,10 +1412,10 @@ function momPass(s) {
     if (!f.sig && !f.zero && !f.hist && !f.cross) return true;
     return !!s && (!f.sig || s.aboveSig) && (!f.zero || s.aboveZero) && (!f.hist || s.histRising) && (!f.cross || s.freshCross);
   }
-  if (S.mode === 'pump') {
-    const f = S.pumpFilter;
-    if (f === 'all' && !S.minPump) return true;
-    return !!s && (f !== 'up' || s.pct > 0) && (f !== 'vol' || (s.pct > 0 && s.rvol >= 2)) && (!S.minPump || s.pct >= S.minPump);
+  if (S.mode === 'pump' || S.mode === 'pumpb') {
+    const f = S[S.mode + 'Filter'], min = S.mode === 'pump' ? S.minPump : S.minPumpb;
+    if (f === 'all' && !min) return true;
+    return !!s && (f !== 'up' || s.pct > 0) && (f !== 'vol' || (s.pct > 0 && s.rvol >= 2)) && (!min || s.pct >= min);
   }
   const f = S.adxFilter;
   if (f === 'all' && !S.minAdx) return true;
@@ -1417,6 +1447,7 @@ function render() {
   });
   const q = S.q.trim().toUpperCase();
   if (q) rows = rows.filter(r => r.base.includes(q));
+  if (S.mode === 'pumpb') rows = rows.filter(r => r.sym !== BTC_SYM);      // BTC compared with itself is always 0
   if (mom) {
     const so = momSort(), ref = so.iv;
     rows = rows.filter(r => momPass(r.st[ref]));
@@ -1459,6 +1490,8 @@ function render() {
   let empty = 'Waiting for data from Binance…';
   if (q) empty = `No ${QUOTE} pair matches “${esc(S.q.trim())}”.`;
   else if (list.length && S.mode === 'pump') empty = `Nothing matches this filter on ${LABEL[S.pumpSort.iv]} right now.`;
+  else if (list.length && S.mode === 'pumpb') empty = S.tick.has(BTC_SYM) ? `No coin matches this filter against BTC on ${LABEL[S.pumpbSort.iv]} right now.`
+    : 'Bitcoin prices are needed for this tab and aren\'t loaded yet.';
   else if (list.length && S.mode === 'adx') empty = `No trend matches this filter on ${LABEL[S.adxSort.iv]} right now.`;
   else if (list.length && S.mode === 'macd') empty = S.macdF.tfs.some(iv => ivs.includes(iv)) ? 'No token passes these MACD filters right now.'
     : `No token passes these MACD filters on ${LABEL[S.macdSort.iv]} right now.`;
@@ -1470,10 +1503,10 @@ function render() {
       : S.filter === 'test' ? `No token is sitting on ${line} support with ${min}+ bounces right now.`
       : `No ${line} support with ${min}+ bounces is breaking right now.`;
   }
-  const cellFn = { rr: cellRR, pump: cellPump, adx: cellADX, macd: cellMACD }[S.mode] || cell;
+  const cellFn = { rr: cellRR, pump: cellPump, pumpb: cellPump, adx: cellADX, macd: cellMACD }[S.mode] || cell;
   $('list').innerHTML = rows.length
     ? rows.map(r => `<div class="row" role="button" tabindex="0" data-sym="${r.sym}" aria-label="${esc(r.base)} chart">`
-        + `<div class="tok"><b>${esc(r.base)}</b><span>${fmtPrice(r.price)}</span><span>Vol ${fmtVol(r.vol)}</span></div>`
+        + `<div class="tok"><b>${esc(r.base)}</b><span>${fmtPrice(r.price)}</span><span><i class="vl">Vol </i>${fmtVol(r.vol)}</span></div>`
         + ivs.map(iv => cellFn(r.st[iv], iv)).join('') + '</div>').join('')
     : `<div class="empty">${empty}</div>`;
   renderHeader(); renderStatus();
@@ -1488,7 +1521,8 @@ function renderHeader() {
   const rr = S.mode === 'rr', mom = isMom(), so = S.sort, rs = S.rrSort, ms = mom ? momSort() : null;
   const key = [S.ivs.join(), S.mode, so.by, so.iv, so.dir, rs.iv, rs.dir, S.filter, S.rrFilter,
     S.minB.ema, S.minB.tl, S.minRR, JSON.stringify(S.pumpSort), JSON.stringify(S.adxSort),
-    JSON.stringify(S.macdSort), JSON.stringify(S.macdF), S.pumpFilter, S.adxFilter, S.minPump, S.minAdx].join('|');
+    JSON.stringify(S.macdSort), JSON.stringify(S.macdF), S.pumpFilter, S.adxFilter, S.minPump, S.minAdx,
+    JSON.stringify(S.pumpbSort), S.pumpbFilter, S.minPumpb].join('|');
   if (key === headKey) return;
   headKey = key;
   const arrow = d => d < 0 ? ' ↓' : ' ↑';
@@ -1514,11 +1548,12 @@ function renderHeader() {
       + '<span class="seglab">Above signal on</span>'
       + S.ivs.map(iv => `<button data-mtf="${iv}" class="tfc" aria-pressed="${S.macdF.tfs.includes(iv)}" aria-label="MACD above signal on ${LABEL[iv]}">${LABEL[iv]}</button>`).join('')
       + '</div>';
-  } else if (S.mode === 'pump') {
-    $('filter').innerHTML = fb('all', 'All', S.pumpFilter) + fb('up', 'Rising', S.pumpFilter)
-      + fb('vol', '<i class="sw box"></i>With volume', S.pumpFilter)
-      + picker(S.minPump ? `≥ +${S.minPump}%` : 'Any rise', 'Minimum rise', PUMP_MIN_OPTIONS, S.minPump,
-        v => v ? `Rise of ${v}% or more` : 'Any move');
+  } else if (S.mode === 'pump' || S.mode === 'pumpb') {
+    const vsb = S.mode === 'pumpb', f = S[S.mode + 'Filter'], min = vsb ? S.minPumpb : S.minPump;
+    $('filter').innerHTML = fb('all', 'All', f) + fb('up', vsb ? 'Beating BTC' : 'Rising', f)
+      + fb('vol', '<i class="sw box"></i>With volume', f)
+      + picker(min ? `≥ +${min}%` : vsb ? 'Any lead' : 'Any rise', vsb ? 'Minimum lead over BTC' : 'Minimum rise', PUMP_MIN_OPTIONS, min,
+        v => v ? (vsb ? `${v}% or more ahead of BTC` : `Rise of ${v}% or more`) : 'Any move');
   } else if (S.mode === 'adx') {
     $('filter').innerHTML = fb('up', 'Uptrend', S.adxFilter) + fb('rise', '<i class="sw box"></i>Rising ADX', S.adxFilter)
       + fb('all', 'All', S.adxFilter)
@@ -1547,15 +1582,16 @@ function renderHeader() {
     $('sortLabel').textContent = ms.by === 'vol' ? 'Volume' : ms.by === 'hist' ? `Hist ${LABEL[ms.iv]}${arrow(-1)}`
       : `PPO ${LABEL[ms.iv]}${arrow(ms.dir)}`;
   } else if (mom) {
-    const pump = S.mode === 'pump';
+    const pump = S.mode === 'pump' || S.mode === 'pumpb', vsb = S.mode === 'pumpb';
     $('sort').innerHTML = (pump
-      ? group('Fastest rise first', iv => `val:${iv}:-1`) + group('Biggest drop first', iv => `val:${iv}:1`)
+      ? group(vsb ? 'Strongest against BTC first' : 'Fastest rise first', iv => `val:${iv}:-1`)
+        + group(vsb ? 'Weakest against BTC first' : 'Biggest drop first', iv => `val:${iv}:1`)
         + group('Biggest volume spike first', iv => `rvol:${iv}:-1`)
       : group('Highest ADX first', iv => `val:${iv}:-1`) + group('Lowest ADX first', iv => `val:${iv}:1`))
       + `<option value="vol:${ms.iv}:-1">24h volume</option>`;
     $('sort').value = ms.by === 'vol' ? `vol:${ms.iv}:-1` : `${ms.by}:${ms.iv}:${ms.by === 'rvol' ? -1 : ms.dir}`;
     $('sortLabel').textContent = ms.by === 'vol' ? 'Volume' : ms.by === 'rvol' ? `Vol spike ${LABEL[ms.iv]}`
-      : pump ? `${LABEL[ms.iv]} %${arrow(ms.dir)}` : `ADX ${LABEL[ms.iv]}${arrow(ms.dir)}`;
+      : vsb ? `${LABEL[ms.iv]} vs BTC${arrow(ms.dir)}` : pump ? `${LABEL[ms.iv]} %${arrow(ms.dir)}` : `ADX ${LABEL[ms.iv]}${arrow(ms.dir)}`;
   } else if (rr) {
     $('sort').innerHTML = '<option value="best:-1">Best R:R, highest first</option><option value="best:1">Best R:R, lowest first</option>'
       + group('Highest R:R first', iv => `${iv}:-1`) + group('Lowest R:R first', iv => `${iv}:1`)
@@ -1571,7 +1607,7 @@ function renderHeader() {
     $('sortLabel').textContent = so.by === 'vol' ? 'Volume' : so.by === 'b' ? `Bounces ${LABEL[so.iv]}`
       : `${LABEL[so.iv]} %${arrow(so.dir)}`;
   }
-  document.title = { ema: 'EMA 25 distance', tl: 'Trendline distance', rr: 'Reward to risk', pump: 'Pumping now', adx: 'Trend strength (ADX)', macd: 'MACD momentum' }[S.mode];
+  document.title = { ema: 'EMA 25 distance', tl: 'Trendline distance', rr: 'Reward to risk', pump: 'Pumping now', pumpb: 'Pumping against BTC', adx: 'Trend strength (ADX)', macd: 'MACD momentum' }[S.mode];
 }
 
 function coverage() {
@@ -1757,6 +1793,8 @@ function facts(ch, price, sym, iv) {
   momRows.push(`<div class="hd">Momentum on ${LABEL[iv]}</div>`);
   const pu = pumpInfo(ch, price), ax = adxInfo(ch);
   row(momRows, 'Last 3 candles', pu ? `${fmtPct(pu.pct)}${pu.rvol != null ? `, volume ×${pu.rvol.toFixed(1)}` : ''}` : '–');
+  const rel = pumpRelInfo(sym, iv);
+  if (rel) row(momRows, 'Last 3 candles vs BTC', `${fmtPct(rel.pct)} (BTC ${fmtPct(rel.btc)})`, rel.pct >= 0 ? 'pass' : '');
   if (ax) {
     row(momRows, 'ADX (14)', `${ax.adx.toFixed(1)}, ${ax.rising ? 'rising' : 'falling'}`);
     row(momRows, 'Trend', `${ax.up ? 'Up' : 'Down'} (+DI ${ax.pdi.toFixed(1)}, −DI ${ax.mdi.toFixed(1)})`);
@@ -1968,6 +2006,7 @@ $('filter').addEventListener('click', e => {
   }
   if (S.mode === 'rr') S.rrFilter = b.dataset.f;
   else if (S.mode === 'pump') S.pumpFilter = b.dataset.f;
+  else if (S.mode === 'pumpb') S.pumpbFilter = b.dataset.f;
   else if (S.mode === 'adx') S.adxFilter = b.dataset.f;
   else S.filter = b.dataset.f;
   savePrefs(); render();
@@ -1979,6 +2018,7 @@ $('filter').addEventListener('change', e => {
   if (S.mode === 'macd') S.macdSort = Object.assign({}, S.macdSort, { iv: e.target.value });
   else if (S.mode === 'rr') S.minRR = +e.target.value;
   else if (S.mode === 'pump') S.minPump = +e.target.value;
+  else if (S.mode === 'pumpb') S.minPumpb = +e.target.value;
   else if (S.mode === 'adx') S.minAdx = +e.target.value;
   else S.minB[S.mode] = +e.target.value;
   savePrefs(); render();
