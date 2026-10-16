@@ -52,7 +52,16 @@ input[type=search]{flex:1;min-width:0;padding:8px 10px;background:var(--panel);b
   -webkit-appearance:none;appearance:none;border:0}
 .pick .k{color:var(--muted)}
 
+[hidden]{display:none!important}
 .seg{display:flex;gap:4px;margin-top:8px}
+.cmpadd{color:var(--gold);border-color:rgba(240,185,11,.55)}
+.cmpbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px}
+.cmpbar .lab{font-size:12.5px;color:var(--muted)}
+.cchip{display:flex;align-items:center;gap:2px;background:var(--panel);border:1px solid var(--gold);color:var(--gold);
+  border-radius:999px;padding:3px 3px 3px 10px;font-size:13px;font-weight:600}
+.cchip button{background:none;border:0;color:var(--gold);width:26px;height:26px;font-size:17px;line-height:1;border-radius:50%}
+.cmpbar .clr{margin-left:auto;background:none;border:0;color:var(--muted);font-size:13px;font-weight:600;padding:4px 0}
+.btn.on{color:var(--gold);border-color:var(--gold)}
 .seg.stack{flex-direction:column}
 .segrow{display:flex;gap:4px;min-width:0}
 .seglab{flex:none;align-self:center;font-size:12.5px;color:var(--muted);padding-right:2px;white-space:nowrap}
@@ -238,6 +247,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
   <div class="controls">
     <input type="search" id="q" placeholder="Search token" aria-label="Search token"
       autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <button class="btn cmpadd" id="cmpAdd" hidden>+ Compare</button>
     <label class="btn pick"><span class="k">Sort</span><span id="sortLabel">Volume</span>
       <select id="sort" aria-label="Sort tokens"></select></label>
     <button class="btn icon" id="openSettings" aria-label="Settings" aria-haspopup="dialog">
@@ -246,6 +256,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
         <circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
     </button>
   </div>
+  <div class="cmpbar" id="cmpbar" hidden></div>
   <div class="seg" id="filter" role="group" aria-label="Filter"></div>
   <div class="bar"><i id="bar"></i></div>
   <div class="cols" id="cols"></div>
@@ -272,6 +283,10 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
   <div class="chips" id="topChips"></div>
   <h2>Stablecoins</h2>
   <div class="chips" id="stableChips"></div>
+  <h2>Trendline lookback</h2>
+  <p>How many recent candles are searched for support and resistance trendlines. More candles find longer, older
+    lines; fewer focus on recent price action. 150 and 200 download more history the first time.</p>
+  <div class="chips" id="lbChips"></div>
   <h2>How support is detected</h2>
   <p>On the EMA 25 and Trendline tabs, the percentages show how far price is above (+) or below (−) that line,
     and the Min button sets how many bounces a support needs before it's marked. A dip or touch counts when a
@@ -315,6 +330,12 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
     means the last closed candle traded 3.2 times its usual volume (the median of the 20 candles before it). A gold
     box marks a rise backed by at least twice the usual volume. Tokens are ranked on the timeframe you sort by, from
     the fastest rise down, and the filters use that timeframe too.</p>
+  <h3>Comparing tokens</h3>
+  <p>Type a token in the search box and tap + Compare to pin it, or tap + Compare on a token's chart. Pin as many as
+    you like: every tab then shows only the pinned tokens, ranked by that tab's sort, with the tab's filters switched
+    off so none of them gets hidden. Tap × to unpin one, or Clear to go back to the full list. You can also type
+    several names at once in the search box, like "avax near". Searching also switches the filters off, so the
+    tokens you type always show.</p>
   <h3>Pump/BTC tab</h3>
   <p>The same as Pump, but every move is measured against Bitcoin instead of USDT: how much the coin rose or fell
     compared with BTC over the same 3 candles, which is the change in its price in BTC. A coin that rose 5% while
@@ -332,7 +353,9 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
     candle hasn't closed yet, and "2 ago" means the close above was 2 candles ago. A gold box marks a breakout.
     "retest" means price came back to the line after breaking it, and "failed" means it fell back below. Cells
     without a breakout show how far price is below the resistance, in gold when it's close enough to be testing it.</p>
-  <p>The button at the end of the filter row sets how recent a breakout must be. Broken lines stay on the chart in
+  <p>Breaking out lists breakouts that are still above the line. Recent also includes ones that failed, so every
+    breakout drawn on a chart can be found. The second row sets how recent a breakout must be, from 1 to 30
+    candles. Broken lines stay on the chart in
     pink, with a gold dot where price broke out, so you can see the breakout. When a resistance breaks, the R:R tab
     goes back to using past bounces for its target.</p>
   <h3>Breakdown tab</h3>
@@ -341,7 +364,8 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
     line right now but the candle hasn't closed yet, and "2 ago" means the close below was 2 candles ago. A red box
     marks a breakdown. "retest" means price came back up to the line from below, and "failed" (green) means it got
     back above. Cells without a breakdown show how far price is above the support, in gold when it's close enough
-    to be testing it. The button at the end of the filter row sets how recent a breakdown must be.</p>
+    to be testing it. Breaking down lists breakdowns still below the line, and Recent also includes ones that
+    failed. The second row sets how recent a breakdown must be, from 1 to 30 candles.</p>
   <h3>Scalp tab</h3>
   <p>Runs the scalping routine for you on the most traded tokens (Top 50 by volume unless you pick otherwise) and
     ranks them from the best opportunity down. Each token gets four checks:</p>
@@ -368,10 +392,11 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 
 <section class="detail" id="detail" role="dialog" aria-modal="true" aria-label="Token chart">
   <div class="dhead">
-    <button class="back" id="back">‹ All tokens</button>
+    <button class="back" id="back">‹ Tokens</button>
     <div class="acts">
+      <button class="btn" id="dCmp">+ Compare</button>
       <button class="btn" id="dRefresh" aria-label="Refresh">↻</button>
-      <a class="btn" id="dBinance" target="_blank" rel="noopener">Open on Binance ↗</a>
+      <a class="btn" id="dBinance" target="_blank" rel="noopener" aria-label="Open on Binance">Binance ↗</a>
     </div>
   </div>
   <div class="dtitle"><h2 id="dSym"></h2><div class="dprice" id="dPrice"></div></div>
@@ -386,9 +411,13 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
     <button data-show="macd" aria-pressed="true"><i class="mac"></i>MACD</button>
   </div>
   <dl class="facts" id="dFacts"></dl>
-  <h3 class="dsec">All timeframes</h3>
-  <p class="dnote">Current trendline and EMA 25 price, the R:R of buying now, ADX and MACD (as PPO) on each timeframe. Tap a row to chart it.</p>
+  <h3 class="dsec">All timeframes: levels</h3>
+  <p class="dnote">Current trendline and EMA 25 price, and the R:R of buying now, on each timeframe. Tap a row to chart it.</p>
   <table class="tft" id="dTable"></table>
+  <h3 class="dsec">All timeframes: momentum</h3>
+  <p class="dnote">Move is the change over the last 3 candles, as on the Pump tab; vs BTC is that move measured against
+    Bitcoin, as on Pump/BTC. Then ADX and MACD (as PPO). Tap a row to chart it.</p>
+  <table class="tft" id="dTable2"></table>
 </section>
 
 <script>
@@ -399,8 +428,9 @@ footer{color:var(--muted);font-size:12px;line-height:1.5;padding:4px 12px 24px;m
 const QUOTE = 'USDT';
 const PERIOD = 25;            // EMA length
 const REFRESH = 30000;        // automatic refresh in ms (30 s)
-const LIMIT = 99;             // candles downloaded the first time for each chart
-const KEEP = 100;             // closed candles kept per chart
+const TL_LOOKBACKS = [50, 100, 150, 200];   // candles searched for support and resistance trendlines
+const keepN = () => Math.max(100, S.tlLookback);   // closed candles kept per chart
+const limitN = () => keepN() + 1;                  // candles downloaded the first time (one is still forming)
 const CONCURRENCY = 8;
 const WEIGHT_CAP = 4800;      // Binance allows 6000 request weight per minute per IP; stay under it
 // Distances below are in ATR (average range of the last 14 candles), so the rules
@@ -432,7 +462,7 @@ const MOM = ['pump', 'pumpb', 'adx', 'macd'];
 const SCALP = { maxChase: 8, minVol: 2, minAdx: 25, minRR: 2 };
 const SCALP_IVS = ['1h', '15m', '3m'];
 const SCALP_TOPS = [30, 50, 100];
-const BO_WINDOWS = [1, 3, 5, 10];   // how recent a close above the line must be to count as a breakout
+const BO_WINDOWS = [1, 3, 5, 10, 20, 30];   // how recent a break must be to be listed
 const BO_KEEP = 30;                 // broken lines stay on the chart for this many candles
 // ----------------------------------------------
 
@@ -460,7 +490,7 @@ const S = {
   macdF: { sig: true, zero: false, hist: false, cross: false, tfs: [] },
   pumpFilter: 'all', adxFilter: 'up', minPump: 0, minAdx: 0,
   scalpFilter: '3plus', scalpTop: 50, scalpSort: 'score',
-  boFilter: 'bo', boFresh: 3, boSort: 'count', bdFilter: 'bd', bdFresh: 3, bdSort: 'count',
+  boFilter: 'bo', boFresh: 3, boSort: 'count', tlLookback: 100, cmp: [], bdFilter: 'bd', bdFresh: 3, bdSort: 'count',
   detail: null, show: { tl: true, res: true, ema: true, rr: true, macd: true },
   lastUpdate: 0, nextAt: 0, tickErr: '', busy: false
 };
@@ -479,10 +509,12 @@ try {
   if (['ema', 'tl', 'bo', 'bd', 'rr', 'pump', 'pumpb', 'adx', 'macd', 'scalp'].includes(p.mode)) S.mode = p.mode;
   if (['all', 'up', 'vol'].includes(p.pumpbFilter)) S.pumpbFilter = p.pumpbFilter;
   if (PUMP_MIN_OPTIONS.includes(p.minPumpb)) S.minPumpb = p.minPumpb;
-  if (['bd', 'near', 'all'].includes(p.bdFilter)) S.bdFilter = p.bdFilter;
+  if (['bd', 'recent', 'near', 'all'].includes(p.bdFilter)) S.bdFilter = p.bdFilter;
+  if (TL_LOOKBACKS.includes(p.tlLookback)) S.tlLookback = p.tlLookback;
+  if (Array.isArray(p.cmp)) S.cmp = p.cmp.filter(x => typeof x === 'string' && /^[A-Z0-9]{2,30}$/.test(x)).slice(0, 12);
   if (BO_WINDOWS.includes(p.bdFresh)) S.bdFresh = p.bdFresh;
   if (p.bdSort === 'count' || p.bdSort === 'vol' || ALL_IVS.includes(p.bdSort)) S.bdSort = p.bdSort;
-  if (['bo', 'near', 'all'].includes(p.boFilter)) S.boFilter = p.boFilter;
+  if (['bo', 'recent', 'near', 'all'].includes(p.boFilter)) S.boFilter = p.boFilter;
   if (BO_WINDOWS.includes(p.boFresh)) S.boFresh = p.boFresh;
   if (p.boSort === 'count' || p.boSort === 'vol' || ALL_IVS.includes(p.boSort)) S.boSort = p.boSort;
   if (['all4', '3plus', 'all'].includes(p.scalpFilter)) S.scalpFilter = p.scalpFilter;
@@ -516,7 +548,7 @@ function savePrefs() {
       pumpFilter: S.pumpFilter, adxFilter: S.adxFilter, minPump: S.minPump, minAdx: S.minAdx,
       pumpbSort: S.pumpbSort, pumpbFilter: S.pumpbFilter, minPumpb: S.minPumpb,
       macdSort: S.macdSort, macdF: S.macdF, scalpFilter: S.scalpFilter, scalpTop: S.scalpTop, scalpSort: S.scalpSort,
-      boFilter: S.boFilter, boFresh: S.boFresh, boSort: S.boSort, bdFilter: S.bdFilter, bdFresh: S.bdFresh, bdSort: S.bdSort }));
+      boFilter: S.boFilter, boFresh: S.boFresh, boSort: S.boSort, tlLookback: S.tlLookback, cmp: S.cmp, bdFilter: S.bdFilter, bdFresh: S.bdFresh, bdSort: S.bdSort }));
   } catch (_) {}
 }
 
@@ -607,7 +639,7 @@ function append(ch, x) {
   ch.o.push(+x[1]); ch.h.push(+x[2]); ch.l.push(+x[3]); ch.c.push(c); ch.v.push(+x[5]);
   ch.e.push(c * K + prev * (1 - K));
   ch.lastOpen = +x[0];
-  const extra = ch.c.length - KEEP;
+  const extra = ch.c.length - keepN();
   if (extra > 0) for (const a of [ch.o, ch.h, ch.l, ch.c, ch.v, ch.e]) a.splice(0, extra);
 }
 
@@ -615,10 +647,10 @@ function append(ch, x) {
 // Returns { a, ya, s, touches } where the line is y(i) = ya + s * (i - a).
 function findLowLines(ch) {
   const n = ch.c.length, L = ch.l, C = ch.c, atr = ch.atr, P = SUP.pivot;
-  const out = { tl: null, broken: null, bd: { keep: null } }, broken = [];
+  const out = { tl: null, bd: [] }, broken = [];
   if (!(atr > 0) || n < 2 * P + 5) return out;
   const piv = [];
-  for (let i = P; i < n - P; i++) {
+  for (let i = Math.max(P, n - S.tlLookback); i < n - P; i++) {
     let low = true;
     for (let j = i - P; j <= i + P; j++) if (L[j] < L[i]) { low = false; break; }
     if (low) piv.push(i);
@@ -652,13 +684,8 @@ function findLowLines(ch) {
   }
   // A close below one line that stayed above the live support line isn't a breakdown of the support
   const t0 = out.tl;
-  const better = (c, t) => !t || c.touches > t.touches || (c.touches === t.touches && (c.k > t.k || (c.k === t.k && c.a < t.a)));
-  for (const c of broken) {
-    if (t0 && t0.a <= c.k && C[c.k] >= t0.ya + t0.s * (c.k - t0.a) - breakTol) continue;
-    for (const w of BO_WINDOWS) if (c.ago <= w && better(c, out.bd[w])) out.bd[w] = c;
-    if (better(c, out.bd.keep)) out.bd.keep = c;
-  }
-  out.broken = out.bd.keep;
+  out.bd = broken.filter(c => !(t0 && t0.a <= c.k && C[c.k] >= t0.ya + t0.s * (c.k - t0.a) - breakTol))
+    .sort((x, y) => y.touches - x.touches || y.k - x.k || x.a - y.a).slice(0, 12);
   return out;
 }
 
@@ -666,16 +693,15 @@ function findLowLines(ch) {
 // Returns { a, ya, s, touches } where the line is y(i) = ya + s * (i - a).
 function findHighLines(ch) {
   const n = ch.c.length, Hh = ch.h, C = ch.c, atr = ch.atr, P = SUP.pivot;
-  const out = { res: null, bo: { keep: null } };
+  const out = { res: null, bo: [] };
   if (!(atr > 0) || n < 2 * P + 5) return out;
   const piv = [];
-  for (let i = P; i < n - P; i++) {
+  for (let i = Math.max(P, n - S.tlLookback); i < n - P; i++) {
     let high = true;
     for (let j = i - P; j <= i + P; j++) if (Hh[j] > Hh[i]) { high = false; break; }
     if (high) piv.push(i);
   }
   const touchTol = SUP.touch * atr, breakTol = SUP.breakTol * atr, wickTol = SUP.wickTol * atr;
-  const betterBO = (c, b) => !b || c.touches > b.touches || (c.touches === b.touches && (c.k > b.k || (c.k === b.k && c.a < b.a)));
   const broken = [];
   for (let x = 0; x < piv.length; x++) {
     const a = piv[x];
@@ -703,11 +729,8 @@ function findHighLines(ch) {
   }
   // A close above one line that stayed under the live resistance line isn't a breakout of the zone
   const r = out.res;
-  for (const c of broken) {
-    if (r && r.a <= c.k && C[c.k] <= r.ya + r.s * (c.k - r.a) + breakTol) continue;
-    for (const w of BO_WINDOWS) if (c.ago <= w && betterBO(c, out.bo[w])) out.bo[w] = c;
-    if (betterBO(c, out.bo.keep)) out.bo.keep = c;
-  }
+  out.bo = broken.filter(c => !(r && r.a <= c.k && C[c.k] <= r.ya + r.s * (c.k - r.a) + breakTol))
+    .sort((x, y) => y.touches - x.touches || y.k - x.k || x.a - y.a).slice(0, 12);
   return out;
 }
 // Candle index of each touch of the resistance line (the closest candle of each touch), for drawing
@@ -740,21 +763,26 @@ function breakoutInfo(ch, price) {
   const n = ch.c.length, min = S.minB.tl, res = resInfo(ch, price);
   if (res && res.ok && res.state === 'broken')
     return { kind: 'now', ago: 0, line: ch.res, ref: res.ref, pct: res.pct, touches: res.touches };
-  const c = ch.bo && ch.bo[S.boFresh];
-  if (c && c.touches >= min) {
+  let failed = null;
+  for (const c of ch.bo || []) {               // best line first: return the first one still holding
+    if (c.ago > S.boFresh || c.touches < min) continue;
     const ref = c.ya + c.s * (n - c.a), d = (price - ref) / ch.atr;
-    return { kind: d > SUP.testZone ? 'holding' : d >= -SUP.breakTol ? 'retest' : 'failed', ago: c.ago, line: c, ref,
+    const info = { kind: d > SUP.testZone ? 'holding' : d >= -SUP.breakTol ? 'retest' : 'failed', ago: c.ago, line: c, ref,
       pct: (price - ref) / ref * 100, touches: c.touches };
+    if (info.kind !== 'failed') return info;
+    if (!failed) failed = info;
   }
+  if (failed) return failed;
   if (res && res.ok) return { kind: res.state === 'testing' ? 'testing' : 'below', line: ch.res, ref: res.ref, pct: res.pct, touches: res.touches };
   return null;
 }
 const isBreakout = b => !!b && (b.kind === 'now' || b.kind === 'holding' || b.kind === 'retest');   // also used by the Breakout tab
 // Broken line to draw: a fresh breakout first, otherwise any line broken in the last BO_KEEP candles
-function brokenSupport(ch) {   // a fresh breakdown first, otherwise any support broken in the last BO_KEEP candles
+function brokenSupport(ch, price) {   // the breakdown the list shows, otherwise the best one in the last BO_KEEP candles
   if (!ch || !ch.bd) return null;
-  const f = ch.bd[S.bdFresh], c = f && f.touches >= S.minB.tl ? f : ch.bd.keep;
-  return c && c.touches >= S.minB.tl ? c : null;
+  const b = breakdownInfo(ch, price);
+  if (b && b.ago > 0 && b.line && b.line !== ch.tl) return b.line;
+  return ch.bd.find(c => c.touches >= S.minB.tl) || null;
 }
 // Breakdown below a support trendline: 'now' (below the line, candle not closed), 'holding', 'retest', 'failed';
 // otherwise where price sits above the support ('testing' when close, 'above')
@@ -767,12 +795,16 @@ function breakdownInfo(ch, price) {
     if (ref > 0) live = { ref, d: (price - ref) / ch.atr, pct: (price - ref) / ref * 100 };
   }
   if (live && live.d < -SUP.breakTol) return { kind: 'now', ago: 0, line: t, ref: live.ref, pct: live.pct, touches: t.touches };
-  const c = ch.bd && ch.bd[S.bdFresh];
-  if (c && c.touches >= min) {
+  let failed = null;
+  for (const c of ch.bd || []) {               // best line first: return the first one still below
+    if (c.ago > S.bdFresh || c.touches < min) continue;
     const ref = c.ya + c.s * (n - c.a), d = (price - ref) / ch.atr;
-    return { kind: d < -SUP.testZone ? 'holding' : d <= SUP.breakTol ? 'retest' : 'failed', ago: c.ago, line: c, ref,
+    const info = { kind: d < -SUP.testZone ? 'holding' : d <= SUP.breakTol ? 'retest' : 'failed', ago: c.ago, line: c, ref,
       pct: (price - ref) / ref * 100, touches: c.touches };
+    if (info.kind !== 'failed') return info;
+    if (!failed) failed = info;
   }
+  if (failed) return failed;
   if (live) return { kind: live.d <= SUP.testZone ? 'testing' : 'above', line: t, ref: live.ref, pct: live.pct, touches: t.touches };
   return null;
 }
@@ -787,10 +819,11 @@ function supEvents(ch, r, end) {          // candle index of each touch of a sup
   }
   return ev;
 }
-function brokenLine(ch) {
+function brokenLine(ch, price) {      // the breakout the list shows, otherwise the best one in the last BO_KEEP candles
   if (!ch || !ch.bo) return null;
-  const c = ch.bo[S.boFresh] && ch.bo[S.boFresh].touches >= S.minB.tl ? ch.bo[S.boFresh] : ch.bo.keep;
-  return c && c.touches >= S.minB.tl ? c : null;
+  const b = breakoutInfo(ch, price);
+  if (b && b.ago > 0 && b.line && b.line !== ch.res) return b.line;
+  return ch.bo.find(c => c.touches >= S.minB.tl) || null;
 }
 
 // Every test of a support line since `from`, and how far price bounced after each one.
@@ -821,7 +854,7 @@ function history(ch, from, lineAt) {
 function derive(ch) {
   const n = ch.c.length, e = ch.e;
   ch.ema = n ? e[n - 1] : null; ch.atr = 0; ch.bounces = 0; ch.rising = false;
-  ch.tl = null; ch.tlH = null; ch.emaH = null; ch.res = null; ch.resH = null; ch.bo = null; ch.tlBroken = null; ch.bd = null;
+  ch.tl = null; ch.tlH = null; ch.emaH = null; ch.res = null; ch.resH = null; ch.bo = null; ch.bd = null;
   let tr = 0, m = 0;
   for (let i = Math.max(1, n - 14); i < n; i++) {
     tr += Math.max(ch.h[i] - ch.l[i], Math.abs(ch.h[i] - ch.c[i - 1]), Math.abs(ch.l[i] - ch.c[i - 1]));
@@ -833,7 +866,7 @@ function derive(ch) {
   if (!(ch.atr > 0)) return;
   const ll = findLowLines(ch);
   const tl = ch.tl = ll.tl;
-  ch.tlBroken = ll.broken; ch.bd = ll.bd;
+  ch.bd = ll.bd;
   if (tl) ch.tlH = history(ch, tl.a, i => tl.ya + tl.s * (i - tl.a));
   const hl = findHighLines(ch);
   ch.res = hl.res; ch.bo = hl.bo;
@@ -854,7 +887,8 @@ async function loadChart(sym, iv) {
   const key = sym + '|' + iv, old = S.charts.get(key);
   const url = n => `/api/v3/klines?symbol=${sym}&interval=${iv}&limit=${n}`;
   let ch = null, k;
-  if (old && old.c && old.e.length && old.e[old.e.length - 1] != null) {
+  // a short update is enough once the chart already holds the history the trendline search needs
+  if (old && old.c && old.e.length && old.e[old.e.length - 1] != null && old.c.length >= keepN() - 3) {
     k = await api(url(6), 2);
     const now = serverNow();
     const fresh = k.filter(x => +x[6] < now && +x[0] > old.lastOpen);
@@ -864,7 +898,7 @@ async function loadChart(sym, iv) {
     }
   }
   if (!ch) {
-    k = await api(url(LIMIT), 2);
+    k = await api(url(limitN()), 2);
     const now = serverNow();
     ch = build(k.filter(x => +x[6] < now));        // closed candles only
   }
@@ -885,16 +919,39 @@ function loadChartOnce(sym, iv) {
 
 // ---------- Download queue ----------
 function scalpUniverse() { return universe().slice(0, S.scalpTop); }
+// Several names can be typed at once ("avax near"); an exact name also finds pairs outside the Top N list
+const searchTerms = () => S.q.trim().toUpperCase().split(/[\s,;]+/).filter(Boolean).map(t => t.endsWith(QUOTE) && t.length > QUOTE.length ? t.slice(0, -QUOTE.length) : t);
+function searchExact() {
+  return searchTerms().map(t => t + QUOTE).filter(sym => S.pairs.has(sym) && S.tick.has(sym));
+}
+const comparing = () => S.cmp.length > 0 && !S.q.trim();
+function viewSyms(base) {
+  const terms = searchTerms();
+  if (terms.length) {
+    const out = base.filter(sym => { const b = S.pairs.get(sym); return terms.some(t => b.includes(t)); });
+    for (const sym of searchExact()) if (!out.includes(sym)) out.push(sym);
+    return out;
+  }
+  if (comparing()) return S.cmp.filter(sym => S.pairs.has(sym) && S.tick.has(sym));
+  return base;
+}
 function wantedCharts() {
   const want = new Map();
   for (const sym of universe()) for (const iv of S.ivs) want.set(sym + '|' + iv, [sym, iv]);
   if (S.mode === 'scalp') for (const sym of scalpUniverse()) for (const iv of SCALP_IVS) want.set(sym + '|' + iv, [sym, iv]);
   if (S.mode === 'pumpb' && S.pairs.has(BTC_SYM)) for (const iv of S.ivs) want.set(BTC_SYM + '|' + iv, [BTC_SYM, iv]);
+  // pinned tokens and exact search names load even when they're outside the Top N list
+  for (const sym of [...S.cmp, ...searchExact()]) {
+    if (!S.pairs.has(sym)) continue;
+    for (const iv of S.ivs) want.set(sym + '|' + iv, [sym, iv]);
+    if (S.mode === 'scalp') for (const iv of SCALP_IVS) want.set(sym + '|' + iv, [sym, iv]);
+  }
   return want;
 }
 function schedule() {
   const now = serverNow(), list = universe(), rank = new Map(list.map((s, i) => [s, i]));
   const want = wantedCharts();
+  for (const [sym] of want.values()) if (!rank.has(sym)) rank.set(sym, -1);   // pinned and searched tokens first
   S.queue = S.queue.filter(([s, iv]) => {
     if (want.has(s + '|' + iv)) return true;
     S.pending.delete(s + '|' + iv);
@@ -1224,11 +1281,15 @@ const BRK = {
     breaking: '<i class="sw box"></i>Breaking out', nearLabel: 'Near resistance', color: 'var(--gold)',
     none: w => `No resistance trendline breakouts in the last ${w} candle${w > 1 ? 's' : ''} on the selected timeframes.`,
     noneNear: 'No token is testing a resistance trendline right now.', most: 'Most timeframes breaking out',
+    noneRecent: w => `No resistance trendline broke in the last ${w} candle${w > 1 ? 's' : ''} on the selected timeframes.`,
+    within: 'Broke out within', past: 'broke out',
     newest: 'Newest breakout first', title: 'Trendline breakouts', what: 'breakout' },
   bd: { info: (ch, p) => breakdownInfo(ch, p), cell: cellBD, f: 'bdFilter', fresh: 'bdFresh', sort: 'bdSort', dir: 1,
     breaking: '<i class="sw cbox"></i>Breaking down', nearLabel: 'Near support', color: 'var(--down)',
     none: w => `No support trendline breakdowns in the last ${w} candle${w > 1 ? 's' : ''} on the selected timeframes.`,
     noneNear: 'No token is testing a support trendline right now.', most: 'Most timeframes breaking down',
+    noneRecent: w => `No support trendline broke in the last ${w} candle${w > 1 ? 's' : ''} on the selected timeframes.`,
+    within: 'Broke down within', past: 'broke down',
     newest: 'Newest breakdown first', title: 'Trendline breakdowns', what: 'breakdown' }
 };
 const isBrkMode = () => S.mode === 'bo' || S.mode === 'bd';
@@ -1237,31 +1298,35 @@ function brkCompare(x, y, dir) {         // breaks first (newest first), then cl
   return BRK_RANK[x.kind] - BRK_RANK[y.kind] || (x.ago || 0) - (y.ago || 0) || dir * (x.pct - y.pct);
 }
 function renderBreak() {
-  const m = BRK[S.mode], list = universe(), ivs = S.ivs, q = S.q.trim().toUpperCase();
-  let rows = list.map(sym => {
+  const m = BRK[S.mode], list = universe(), ivs = S.ivs, q = S.q.trim().toUpperCase(), cmpMode = comparing(), bypass = cmpMode || !!q;
+  let rows = viewSyms(list).map(sym => {
     const t = S.tick.get(sym), st = {};
-    let count = 0, freshest = Infinity, near = false;
+    let count = 0, recent = 0, freshest = Infinity, near = false;
     for (const iv of ivs) {
       const b = st[iv] = m.info(S.charts.get(sym + '|' + iv), t.price);
       if (isBreak(b)) { count++; freshest = Math.min(freshest, b.ago); }
+      if (isBreak(b) || (b && b.kind === 'failed')) recent++;
       if (b && b.kind === 'testing') near = true;
     }
-    return { sym, base: S.pairs.get(sym), price: t.price, vol: t.vol, st, count, freshest, near };
+    return { sym, base: S.pairs.get(sym), price: t.price, vol: t.vol, st, count, recent, freshest, near };
   });
-  if (q) rows = rows.filter(r => r.base.includes(q));
   const filter = S[m.f], sort = S[m.sort];
-  if (filter === S.mode) rows = rows.filter(r => r.count > 0);
+  const showRecent = filter === 'recent';
+  if (bypass) { /* comparing or searching: show every token asked for */ }
+  else if (filter === S.mode) rows = rows.filter(r => r.count > 0);
+  else if (showRecent) rows = rows.filter(r => r.recent > 0);
   else if (filter === 'near') rows = rows.filter(r => r.near);
-  if (sort === 'count') rows.sort((a, b) => b.count - a.count || a.freshest - b.freshest);
+  if (sort === 'count') rows.sort((a, b) => (showRecent ? b.recent - a.recent : 0) || b.count - a.count || a.freshest - b.freshest);
   else if (sort !== 'vol') rows.sort((a, b) => brkCompare(a.st[sort], b.st[sort], m.dir));
-  S.countText = !list.length ? '' : rows.length === list.length ? `${list.length} pairs` : `${rows.length} of ${list.length} pairs`;
+  S.countText = cmpMode ? `comparing ${rows.length}` : !list.length ? '' : rows.length === list.length ? `${list.length} pairs` : `${rows.length} of ${list.length} pairs`;
   let empty = 'Waiting for data from Binance…';
   if (q) empty = `No ${QUOTE} pair matches “${esc(S.q.trim())}”.`;
-  else if (list.length) empty = filter === 'near' ? m.noneNear : m.none(S[m.fresh]);
+  else if (cmpMode) empty = 'The tokens you are comparing are still loading.';
+  else if (list.length) empty = filter === 'near' ? m.noneNear : showRecent ? m.noneRecent(S[m.fresh]) : m.none(S[m.fresh]);
   $('list').innerHTML = rows.length
     ? rows.map(r => `<div class="row" role="button" tabindex="0" data-sym="${r.sym}" aria-label="${esc(r.base)} chart">`
         + `<div class="tok"><b>${esc(r.base)}</b><span>${fmtPrice(r.price)}</span>`
-        + `<span>${r.count ? `<span style="color:${m.color}">${r.count} TF${r.count > 1 ? 's' : ''}</span>` : `<i class="vl">Vol </i>${fmtVol(r.vol)}`}</span></div>`
+        + `<span>${(showRecent ? r.recent : r.count) ? `<span style="color:${m.color}">${showRecent ? r.recent : r.count} TF${(showRecent ? r.recent : r.count) > 1 ? 's' : ''}</span>` : `<i class="vl">Vol </i>${fmtVol(r.vol)}`}</span></div>`
         + ivs.map(iv => m.cell(r.st[iv], iv)).join('') + '</div>').join('')
     : `<div class="empty">${empty}</div>`;
   renderHeader(); renderStatus();
@@ -1275,12 +1340,12 @@ function renderBreakHeader() {
   $('cols').innerHTML = `<button data-k="vol" class="${so === 'vol' ? 'on' : ''}">Token${so === 'vol' ? ' ↓' : ''}</button>`
     + S.ivs.map(iv => `<button data-k="${iv}" class="${so === iv ? 'on' : ''}">${LABEL[iv]}${so === iv ? ' ↓' : ''}</button>`).join('');
   syncTabs();
-  $('filter').classList.remove('stack');
+  $('filter').classList.add('stack');
   const fb = (f, label) => `<button data-f="${f}" aria-pressed="${f === filter}">${label}</button>`;
-  $('filter').innerHTML = fb(S.mode, m.breaking) + fb('near', m.nearLabel) + fb('all', 'All')
-    + `<label class="pick"><span>≤${fresh} candle${fresh > 1 ? 's' : ''}</span><select id="minPick" aria-label="How recent a ${m.what} must be">`
-    + BO_WINDOWS.map(v => `<option value="${v}" ${v === fresh ? 'selected' : ''}>${m.what[0].toUpperCase() + m.what.slice(1)}s in the last ${v} candle${v > 1 ? 's' : ''}</option>`).join('')
-    + '</select></label>';
+  $('filter').innerHTML = '<div class="segrow">' + fb(S.mode, m.breaking) + fb('recent', 'Recent') + fb('near', m.nearLabel) + fb('all', 'All')
+    + `</div><div class="segrow"><span class="seglab">${m.within}</span>`
+    + BO_WINDOWS.map(v => `<button data-win="${v}" class="tfc" aria-pressed="${v === fresh}" aria-label="${m.past} within the last ${v} candle${v > 1 ? 's' : ''}">${v}</button>`).join('')
+    + '<span class="seglab">candles</span></div>';
   $('sort').innerHTML = `<option value="count">${m.most}</option>`
     + `<optgroup label="${m.newest}">${S.ivs.map(iv => `<option value="${iv}">${LABEL[iv]}</option>`).join('')}</optgroup>`
     + '<option value="vol">24h volume</option>';
@@ -1333,18 +1398,18 @@ function scalpCells(si) {
   return pump + adx + macd + rrc;
 }
 function renderScalp() {
-  const list = scalpUniverse(), q = S.q.trim().toUpperCase();
-  let rows = list.map(sym => ({ sym, base: S.pairs.get(sym), price: S.tick.get(sym).price, vol: S.tick.get(sym).vol, si: scalpInfo(sym) }))
+  const list = scalpUniverse(), q = S.q.trim().toUpperCase(), cmpMode = comparing(), bypass = cmpMode || !!q;
+  let rows = viewSyms(list).map(sym => ({ sym, base: S.pairs.get(sym), price: S.tick.get(sym).price, vol: S.tick.get(sym).vol, si: scalpInfo(sym) }))
     .filter(r => r.si);
-  if (q) rows = rows.filter(r => r.base.includes(q));
-  if (S.scalpFilter !== 'all') rows = rows.filter(r => r.si.score >= (S.scalpFilter === 'all4' ? 4 : 3));
+  if (!bypass && S.scalpFilter !== 'all') rows = rows.filter(r => r.si.score >= (S.scalpFilter === 'all4' ? 4 : 3));
   const rrOf = r => r.si.rr ? r.si.rr.su.rr : -1;
   if (S.scalpSort === 'score') rows.sort((a, b) => b.si.score - a.si.score || rrOf(b) - rrOf(a));
   else if (S.scalpSort === 'rr') rows.sort((a, b) => rrOf(b) - rrOf(a));
-  S.countText = !list.length ? '' : `${rows.length} of top ${list.length} pairs`;
+  S.countText = cmpMode ? `comparing ${rows.length}` : !list.length ? '' : `${rows.length} of top ${list.length} pairs`;
   const [have, total] = coverage();
   let empty = 'Waiting for data from Binance…';
   if (q) empty = `No ${QUOTE} pair matches “${esc(S.q.trim())}” in the top ${S.scalpTop}.`;
+  else if (cmpMode) empty = 'The tokens you are comparing are still loading.';
   else if (list.length && have < total) empty = `Loading 1H, 15m and 3m charts for the top ${S.scalpTop} tokens (${have}/${total})…`;
   else if (list.length) empty = S.scalpFilter === 'all4' ? 'No token passes all four checks right now. Try 3+ checks.'
     : 'No token passes 3 or more checks right now. Markets may be quiet; check again in a few minutes.';
@@ -1428,15 +1493,26 @@ function rrPass(s) {
   return S.rrFilter === 'rtest' ? s.su.testing : S.rrFilter === 'rboth' ? s.su.testing && s.su.both : true;
 }
 
+function renderCmp() {
+  const bar = $('cmpbar'), on = S.cmp.length > 0;
+  bar.hidden = !on;
+  if (on) bar.innerHTML = '<span class="lab">Comparing</span>'
+    + S.cmp.map(sym => `<span class="cchip">${esc(S.pairs.get(sym) || sym.replace(QUOTE, ''))}<button data-unpin="${sym}" aria-label="Stop comparing ${esc(S.pairs.get(sym) || sym)}">×</button></span>`).join('')
+    + '<button class="clr" id="cmpClear">Clear</button>';
+  $('filter').hidden = comparing() || !!S.q.trim();    // filters are off while comparing or searching
+  $('cmpAdd').hidden = !S.q.trim();
+}
 function render() {
   layout();
+  renderCmp();
   if (S.mode === 'scalp') { renderScalp(); return; }
   if (isBrkMode()) { renderBreak(); return; }
   const list = universe(), ivs = S.ivs, rr = S.mode === 'rr', mom = isMom();
   if (S.sort.by !== 'vol' && !ivs.includes(S.sort.iv)) S.sort = { by: 'vol', iv: '', dir: -1 };
   fixMomSorts();
   if (!['best', 'vol'].includes(S.rrSort.iv) && !ivs.includes(S.rrSort.iv)) S.rrSort = { iv: 'best', dir: -1 };
-  let rows = list.map(sym => {
+  const cmpMode = comparing(), bypass = cmpMode || !!S.q.trim();   // filters are off while comparing or searching
+  let rows = viewSyms(list).map(sym => {
     const t = S.tick.get(sym), st = {};
     let best = null;
     for (const iv of ivs) {
@@ -1446,12 +1522,11 @@ function render() {
     return { sym, base: S.pairs.get(sym), price: t.price, vol: t.vol, st, best };
   });
   const q = S.q.trim().toUpperCase();
-  if (q) rows = rows.filter(r => r.base.includes(q));
   if (S.mode === 'pumpb') rows = rows.filter(r => r.sym !== BTC_SYM);      // BTC compared with itself is always 0
   if (mom) {
     const so = momSort(), ref = so.iv;
-    rows = rows.filter(r => momPass(r.st[ref]));
-    const tfs = S.mode === 'macd' ? S.macdF.tfs.filter(iv => ivs.includes(iv)) : [];
+    if (!bypass) rows = rows.filter(r => momPass(r.st[ref]));
+    const tfs = S.mode === 'macd' && !bypass ? S.macdF.tfs.filter(iv => ivs.includes(iv)) : [];
     if (tfs.length) rows = rows.filter(r => tfs.every(iv => r.st[iv] && r.st[iv].aboveSig));
     if (so.by !== 'vol') {
       const val = r => momValue(r.st[ref], so.by);
@@ -1461,7 +1536,7 @@ function render() {
       });
     }
   } else if (rr) {
-    if (S.rrFilter !== 'all' || S.minRR > 0) rows = rows.filter(r => r.best != null);
+    if (!bypass && (S.rrFilter !== 'all' || S.minRR > 0)) rows = rows.filter(r => r.best != null);
     const rs = S.rrSort;
     if (rs.iv !== 'vol') {
       const val = r => rs.iv === 'best' ? r.best : (r.st[rs.iv] ? r.st[rs.iv].rr : null);
@@ -1471,7 +1546,7 @@ function render() {
       });
     }
   } else {
-    if (S.filter !== 'all') rows = rows.filter(r => ivs.some(iv => {
+    if (!bypass && S.filter !== 'all') rows = rows.filter(r => ivs.some(iv => {
       const s = r.st[iv];
       return s && (S.filter === 'sup' ? s.sup === 'hold' || s.sup === 'test' : s.sup === S.filter);
     }));
@@ -1486,9 +1561,10 @@ function render() {
       rows.sort((a, b) => bKey(b.st[k]) - bKey(a.st[k]));   // ties keep volume order
     }
   }
-  S.countText = !list.length ? '' : rows.length === list.length ? `${list.length} pairs` : `${rows.length} of ${list.length} pairs`;
+  S.countText = cmpMode ? `comparing ${rows.length}` : !list.length ? '' : rows.length === list.length ? `${list.length} pairs` : `${rows.length} of ${list.length} pairs`;
   let empty = 'Waiting for data from Binance…';
   if (q) empty = `No ${QUOTE} pair matches “${esc(S.q.trim())}”.`;
+  else if (cmpMode) empty = 'The tokens you are comparing are still loading.';
   else if (list.length && S.mode === 'pump') empty = `Nothing matches this filter on ${LABEL[S.pumpSort.iv]} right now.`;
   else if (list.length && S.mode === 'pumpb') empty = S.tick.has(BTC_SYM) ? `No coin matches this filter against BTC on ${LABEL[S.pumpbSort.iv]} right now.`
     : 'Bitcoin prices are needed for this tab and aren\'t loaded yet.';
@@ -1650,6 +1726,7 @@ function renderSettings() {
     `<button data-top="${v}" aria-pressed="${S.top === v}">${l}</button>`).join('');
   $('stableChips').innerHTML = `<button data-st="1" aria-pressed="${S.hideStable}">Hide</button>`
     + `<button data-st="0" aria-pressed="${!S.hideStable}">Show</button>`;
+  $('lbChips').innerHTML = TL_LOOKBACKS.map(v => `<button data-lb="${v}" aria-pressed="${S.tlLookback === v}">${v} candles</button>`).join('');
 }
 
 // ---------- Token chart view ----------
@@ -1672,11 +1749,17 @@ function refreshDetail(force) {
   const d = S.detail;
   if (!d) return;
   const sym = d.sym;
+  const jobs = [];
   for (const iv of [d.iv, ...ALL_IVS.filter(x => x !== d.iv)]) {
-    const ch = S.charts.get(sym + '|' + iv);
+    jobs.push([sym, iv]);
+    if (sym !== BTC_SYM && S.pairs.has(BTC_SYM)) jobs.push([BTC_SYM, iv]);
+  }
+  for (const [s2, iv] of jobs) {
+    const ch = S.charts.get(s2 + '|' + iv);
     if (!force && ch && ch.c) continue;
-    loadChartOnce(sym, iv)
-      .catch(() => markFailed(sym + '|' + iv))
+    if (s2 === BTC_SYM && sym !== BTC_SYM && ch && ch.c && serverNow() < ch.refetchAt) continue;   // BTC only when due
+    loadChartOnce(s2, iv)
+      .catch(() => markFailed(s2 + '|' + iv))
       .finally(() => { if (S.detail && S.detail.sym === sym) requestDetail(); });
   }
 }
@@ -1688,6 +1771,9 @@ function renderDetail() {
   if (!d) return;
   const { sym, iv } = d, t = S.tick.get(sym), ch = S.charts.get(sym + '|' + iv);
   $('dSym').innerHTML = `${esc(S.pairs.get(sym))}<span>/${QUOTE}</span>`;
+  const pinned = S.cmp.includes(sym);
+  $('dCmp').textContent = pinned ? '✓ Comparing' : '+ Compare';
+  $('dCmp').classList.toggle('on', pinned);
   if (t) {
     const chg = t.open > 0 ? (t.price - t.open) / t.open * 100 : 0;
     $('dPrice').innerHTML = `${fmtExact(t.price, sym)}<small class="${chg >= 0 ? 'up' : 'dn'}">${fmtPct(chg)} 24h</small>`;
@@ -1698,7 +1784,9 @@ function renderDetail() {
   $('chart').innerHTML = ready ? drawChart(ch, t.price, iv) : '<div class="cmsg">Loading chart…</div>';
   $('macdChart').innerHTML = ready && S.show.macd ? drawMACD(ch, t.price) : '';
   $('dFacts').innerHTML = ready ? facts(ch, t.price, sym, iv) : '';
-  let rows = '<tr><th>TF</th><th>Trendline</th><th>EMA 25</th><th>R:R</th><th>ADX</th><th>MACD</th></tr>';
+  let rows = '<tr><th>TF</th><th>Trendline</th><th>EMA 25</th><th>R:R</th></tr>';
+  let mrows = '<tr><th>TF</th><th>Move</th><th>vs BTC</th><th>ADX</th><th>MACD</th></tr>';
+  const dash = '–<small>&nbsp;</small>';
   for (const x of ALL_IVS) {
     const c = S.charts.get(sym + '|' + x);
     const tl = t && lineInfo(c, t.price, 'tl'), em = t && lineInfo(c, t.price, 'ema'), su = t && setup(c, t.price);
@@ -1709,9 +1797,16 @@ function renderDetail() {
     const adx = ax ? `<span class="${ax.up ? 'up' : 'dn'}">${ax.adx.toFixed(0)}</span><small>${ax.rising ? 'rising' : 'falling'}</small>` : '–<small>&nbsp;</small>';
     const mi = t && macdInfo(c, t.price);
     const macdCell = mi ? `<span class="${mi.aboveSig ? 'up' : 'dn'}">${fmtPct(mi.ppo)}</span><small>${mi.freshCross ? 'new cross' : mi.histRising ? 'hist ↑' : 'hist ↓'}</small>` : '–<small>&nbsp;</small>';
-    rows += `<tr data-iv="${x}" class="${x === iv ? 'on' : ''}"><td>${LABEL[x]}</td><td>${val(tl)}</td><td>${val(em)}</td><td>${rr}</td><td>${adx}</td><td>${macdCell}</td></tr>`;
+    const pu = t && pumpInfo(c, t.price), rel = pumpRelInfo(sym, x);
+    const move = pu ? `<span class="${pu.pct >= 0 ? 'up' : 'dn'}">${fmtPct(pu.pct)}</span><small>${pu.rvol != null ? `vol ×${pu.rvol.toFixed(1)}` : '&nbsp;'}</small>` : dash;
+    const vsb = rel ? `<span class="${rel.pct >= 0 ? 'up' : 'dn'}">${fmtPct(rel.pct)}</span><small>BTC ${fmtPct(rel.btc)}</small>`
+      : sym === BTC_SYM ? '–<small>is BTC</small>' : dash;
+    const on = x === iv ? 'on' : '';
+    rows += `<tr data-iv="${x}" class="${on}"><td>${LABEL[x]}</td><td>${val(tl)}</td><td>${val(em)}</td><td>${rr}</td></tr>`;
+    mrows += `<tr data-iv="${x}" class="${on}"><td>${LABEL[x]}</td><td>${move}</td><td>${vsb}</td><td>${adx}</td><td>${macdCell}</td></tr>`;
   }
   $('dTable').innerHTML = rows;
+  $('dTable2').innerHTML = mrows;
 }
 
 function statusWord(r, kind, ch) {
@@ -1737,7 +1832,7 @@ function facts(ch, price, sym, iv) {
   } else {
     lineRows.push(`<div class="none">No rising trendline on ${LABEL[iv]} right now. Price may be in a downtrend, or it has closed below every recent line.</div>`);
   }
-  const bs = brokenSupport(ch);
+  const bs = brokenSupport(ch, price);
   if (bs) {
     const ref = bs.ya + bs.s * (n - bs.a), d = (price - ref) / ch.atr, pct = (price - ref) / ref * 100;
     row(lineRows, 'Breakdown', `${bs.ago} candle${bs.ago > 1 ? 's' : ''} ago`, d > SUP.breakTol ? '' : 'dn');
@@ -1824,8 +1919,8 @@ function drawChart(ch, price, iv) {
   const R = 64, T = 8, B = 22, PW = W - R;                // right gutter for price tags
   const n = ch.c.length, tl = ch.tl, showTl = S.show.tl && tl, showEma = S.show.ema && ch.ema != null;
   const rl = ch.res, showRes = S.show.res && rl, rat = i => rl.ya + rl.s * (i - rl.a);
-  const sb = S.show.tl ? brokenSupport(ch) : null, sbat = i => sb.ya + sb.s * (i - sb.a);
-  const bl = S.show.res ? brokenLine(ch) : null, bat = i => bl.ya + bl.s * (i - bl.a);
+  const sb = S.show.tl ? brokenSupport(ch, price) : null, sbat = i => sb.ya + sb.s * (i - sb.a);
+  const bl = S.show.res ? brokenLine(ch, price) : null, bat = i => bl.ya + bl.s * (i - bl.a);
   const su = S.show.rr ? setup(ch, price) : null, showSu = su && su.rr > 0;
   const f = ch.forming ? { ...ch.forming } : { o: ch.c[n - 1], h: ch.c[n - 1], l: ch.c[n - 1] };
   f.c = price; f.h = Math.max(f.h, price); f.l = Math.min(f.l, price);
@@ -1987,6 +2082,20 @@ $('stableChips').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   S.hideStable = b.dataset.st === '1'; settingsChanged();
 });
+$('lbChips').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || +b.dataset.lb === S.tlLookback) return;
+  S.tlLookback = +b.dataset.lb; savePrefs(); renderSettings();
+  $('status').textContent = 'Recalculating trendlines…';
+  setTimeout(() => {
+    // charts that hold fewer candles than needed are downloaded again with more history
+    for (const ch of S.charts.values()) {
+      if (!ch.c) continue;
+      derive(ch);
+      if (ch.c.length < keepN() - 3) ch.refetchAt = 0;
+    }
+    schedule(); render();
+  }, 50);
+});
 $('mode').addEventListener('scroll', () => $('mode').classList.toggle('more',
   $('mode').scrollLeft + $('mode').clientWidth < $('mode').scrollWidth - 2), { passive: true });
 $('mode').addEventListener('click', e => {
@@ -1996,7 +2105,10 @@ $('mode').addEventListener('click', e => {
 $('filter').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (S.mode === 'scalp') { S.scalpFilter = b.dataset.f; savePrefs(); render(); return; }
-  if (isBrkMode()) { S[BRK[S.mode].f] = b.dataset.f; savePrefs(); render(); return; }
+  if (isBrkMode()) {
+    if (b.dataset.win) S[BRK[S.mode].fresh] = +b.dataset.win; else S[BRK[S.mode].f] = b.dataset.f;
+    savePrefs(); render(); return;
+  }
   if (S.mode === 'macd') {                    // MACD filters can be combined
     if (b.dataset.mtf) {
       const iv = b.dataset.mtf, on = S.macdF.tfs.includes(iv);
@@ -2057,7 +2169,33 @@ $('cols').addEventListener('click', e => {
   }
   savePrefs(); render(); window.scrollTo({ top: 0 });
 });
-$('q').addEventListener('input', e => { S.q = e.target.value; render(); });
+$('q').addEventListener('input', e => { S.q = e.target.value; schedule(); render(); });
+function pin(syms) {
+  for (const sym of syms) if (!S.cmp.includes(sym) && S.cmp.length < 12) S.cmp.push(sym);
+  savePrefs(); schedule(); render();
+}
+$('cmpAdd').addEventListener('click', () => {
+  // exact names first; otherwise whatever the search is showing (up to 10)
+  let add = searchExact();
+  if (!add.length) add = viewSyms(universe()).slice(0, 10);
+  if (!add.length) return;
+  S.q = ''; $('q').value = '';
+  pin(add);
+  window.scrollTo({ top: 0 });
+});
+$('cmpbar').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'cmpClear') S.cmp = [];
+  else if (b.dataset.unpin) S.cmp = S.cmp.filter(x => x !== b.dataset.unpin);
+  savePrefs(); schedule(); render();
+});
+$('dCmp').addEventListener('click', () => {
+  if (!S.detail) return;
+  const sym = S.detail.sym;
+  if (S.cmp.includes(sym)) { S.cmp = S.cmp.filter(x => x !== sym); savePrefs(); schedule(); render(); }
+  else pin([sym]);
+  renderDetail();
+});
 $('refresh').addEventListener('click', () => loop());
 
 // tap a token (or one of its cells) to open its chart on that timeframe
@@ -2093,7 +2231,7 @@ $('dTfs').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || !S.detail) return;
   S.detail.iv = b.dataset.iv; renderDetail(); refreshDetail(S.auto);
 });
-$('dTable').addEventListener('click', e => {
+for (const id of ['dTable', 'dTable2']) $(id).addEventListener('click', e => {
   const tr = e.target.closest('tr[data-iv]'); if (!tr || !S.detail) return;
   S.detail.iv = tr.dataset.iv; renderDetail(); $('detail').scrollTo({ top: 0, behavior: 'smooth' });
 });
